@@ -13,7 +13,7 @@
   color-scheme: light;
   --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10); --wash: #f0efec;
-  --s-pick: #eb6834; --s-watch: #4a3aa7; --s-market: #898781;
+  --s-pick: #eb6834; --s-market: #898781;
   --up: #c62f2e; --down: #1c5cab; --flag: #a8431c;
 }
 @media (prefers-color-scheme: dark) {
@@ -21,7 +21,7 @@
     color-scheme: dark;
     --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10); --wash: #262624;
-    --s-pick: #d95926; --s-watch: #9085e9; --s-market: #898781;
+    --s-pick: #d95926; --s-market: #898781;
     --up: #ff7b7a; --down: #86b6ef; --flag: #ec835a;
   }
 }
@@ -29,7 +29,7 @@
   color-scheme: dark;
   --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10); --wash: #262624;
-  --s-pick: #d95926; --s-watch: #9085e9; --s-market: #898781;
+  --s-pick: #d95926; --s-market: #898781;
   --up: #ff7b7a; --down: #86b6ef; --flag: #ec835a;
 }
 * { box-sizing: border-box; }
@@ -103,8 +103,6 @@ details summary { cursor: pointer; color: var(--ink2); font-size: 13px; margin-t
 .sig-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
 .sig-name { font-size: 16px; font-weight: 650; }
 .sig-code { font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
-.badge { font-size: 11px; font-weight: 600; color: var(--ink2); padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; }
-.badge::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); margin-right: 5px; vertical-align: 1px; }
 .status { margin-left: auto; font-size: 12px; color: var(--ink2); }
 .sig-meta { font-size: 13px; color: var(--ink2); margin-top: 2px; }
 .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; margin: 10px 0 0; }
@@ -124,7 +122,7 @@ footer p { margin: 0 0 8px; }
 <div class="wrap">
   <header>
     <h1>트레이드 시그널 예후</h1>
-    <p class="lede">tradesignal 아침 알림(07:30)에 나온 종목이 그 뒤로 어떻게 움직였는지. 알림 당일 시가에 사서 20거래일 들고 있었다고 보고 계산합니다.</p>
+    <p class="lede">tradesignal 아침 알림(07:30)의 <b>추천</b> 종목이 그 뒤로 어떻게 움직였는지. 알림 당일 시가에 사서 20거래일 들고 있었다고 보고 계산합니다. 관심 종목은 사라고 낸 것이 아니라 여기 넣지 않습니다.</p>
     <p class="updated" id="updated">불러오는 중…</p>
   </header>
 
@@ -171,7 +169,7 @@ footer p { margin: 0 0 8px; }
   let data = null;
   let series = [];
   let chartWidth = 0;
-  const state = { period: 'all', tier: 'all', pattern: 'all', combo: 'all', ...readStore() };
+  const state = { period: 'all', pattern: 'all', combo: 'all', ...readStore() };
 
   function readStore() {
     try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; }
@@ -244,7 +242,6 @@ footer p { margin: 0 0 8px; }
     const combos = [...new Set(data.rows.map(r => (r.signals || []).join('+')).filter(Boolean))].sort();
     return [
       { key: 'period', label: '기간', options: [['all', '전체'], ['30', '1개월'], ['90', '3개월']] },
-      { key: 'tier', label: '구분', options: [['all', '전체'], ['추천', '추천'], ['관심', '관심']] },
       { key: 'pattern', label: '차트', options: [['all', '전체'], ['추세추종', '추세추종'], ['눌림목', '눌림목'], ['none', '미부합']] },
       { key: 'combo', label: '신호', options: [['all', '전체'], ...combos.map(c => [c, c])] },
     ];
@@ -271,7 +268,6 @@ footer p { margin: 0 0 8px; }
   function filtered() {
     const today = dayNumber(data.generated_at.slice(0, 10));
     return data.rows.filter(r =>
-      (state.tier === 'all' || r.tier === state.tier) &&
       (state.pattern === 'all' || (r.pattern || 'none') === state.pattern) &&
       (state.combo === 'all' || (r.signals || []).join('+') === state.combo) &&
       (state.period === 'all' || today - dayNumber(r.date) <= Number(state.period)));
@@ -296,8 +292,7 @@ footer p { margin: 0 0 8px; }
       return vals.length ? { d, v: mean(vals), n: vals.length } : null;
     });
     return [
-      { name: '추천', label: '추천 평균', color: 'var(--s-pick)', width: 2, pts: avg(rows.filter(r => r.tier === '추천'), r => r.path) },
-      { name: '관심', label: '관심 평균', color: 'var(--s-watch)', width: 2, pts: avg(rows.filter(r => r.tier === '관심'), r => r.path) },
+      { name: '추천', label: '추천 평균', color: 'var(--s-pick)', width: 2, pts: avg(rows, r => r.path) },
       { name: '시장', label: '같은 날 시장 지수', color: 'var(--s-market)', width: 1.5, pts: avg(rows, r => r.idx_path) },
     ].filter(s => s.pts.some(Boolean));
   }
@@ -504,8 +499,6 @@ footer p { margin: 0 0 8px; }
     return h('div', {}, h('dt', {}, label), h('dd', { class: cls || null }, value, small ? h('small', {}, small) : null));
   }
   function card(r) {
-    const badge = h('span', { class: 'badge' }, r.tier);
-    badge.style.setProperty('--dot', r.tier === '추천' ? 'var(--s-pick)' : 'var(--s-watch)');
     const status = r.status === '대기' ? '진입 대기' : `${r.status} · ${dayLabel(r.days)}`;
     const meta = [
       (r.signals || []).join('+'),
@@ -516,7 +509,6 @@ footer p { margin: 0 0 8px; }
       h('div', { class: 'sig-head' },
         h('span', { class: 'sig-name' }, r.name || r.code),
         h('span', { class: 'sig-code' }, r.code),
-        badge,
         h('span', { class: 'status' }, status)),
       h('div', { class: 'sig-meta' }, meta));
 
