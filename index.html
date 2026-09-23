@@ -242,7 +242,7 @@ footer p { margin: 0 0 8px; }
     const combos = [...new Set(data.rows.map(r => (r.signals || []).join('+')).filter(Boolean))].sort();
     return [
       { key: 'period', label: '기간', options: [['all', '전체'], ['30', '1개월'], ['90', '3개월']] },
-      { key: 'pattern', label: '차트', options: [['all', '전체'], ['추세추종', '추세추종'], ['눌림목', '눌림목'], ['none', '미부합']] },
+      { key: 'pattern', label: '차트', options: [['all', '전체'], ['추세추종', '추세추종'], ['눌림목', '눌림목'], ['20일선 회복', '20일선 회복'], ['none', '미부합']] },
       { key: 'combo', label: '신호', options: [['all', '전체'], ...combos.map(c => [c, c])] },
     ];
   }
