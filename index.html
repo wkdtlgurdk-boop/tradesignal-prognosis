@@ -78,6 +78,7 @@ th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--gri
 th:first-child, td:first-child { text-align: left; }
 th { font-weight: 500; font-size: 12px; color: var(--ink2); }
 td { font-variant-numeric: tabular-nums; }
+tr.group td { text-align: left; font-weight: 600; color: var(--ink2); padding-top: 14px; }
 details summary { cursor: pointer; color: var(--ink2); font-size: 13px; margin-top: 10px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink2); margin-bottom: 4px; }
@@ -142,6 +143,17 @@ footer p { margin: 0 0 8px; }
   </section>
 
   <section class="card">
+    <h2>장세별 성과</h2>
+    <p class="sub"><b>추천 당일 장세</b>는 알림을 받는 순간 알 수 있는 값입니다 — 코스피·코스닥이 20·60일선 위에 있는지와 외국인 수급으로 매수추천이 매기는 강세·보통·약세(9/29 이전 추천은 지수로 다시 계산, 수급 제외). <b>보유 중 시장</b>은 열흘 뒤에야 아는 값으로, 성적이 시장 덕인지 가르는 데 씁니다 — 같은 기간 지수가 +3% 이상이면 상승장, −3% 이하면 하락장입니다.</p>
+    <div class="tscroll">
+      <table id="regimes">
+        <thead><tr><th>구분</th><th>D+5 표본</th><th>D+5 중앙값</th><th>D+10 표본</th><th>D+10 중앙값</th><th>D+10 승률</th><th>D+10 시장 대비</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>평균 경로</h2>
     <p class="sub">알림 이후 거래일별 평균 수익률. 최근 시그널은 뒤쪽 날짜가 아직 없어서 날마다 표본 수가 다릅니다 — 차트를 누르면 건수가 보입니다.</p>
     <div class="legend" id="legend"></div>
@@ -169,7 +181,16 @@ footer p { margin: 0 0 8px; }
   let data = null;
   let series = [];
   let chartWidth = 0;
-  const state = { period: 'all', pattern: 'all', combo: 'all', ...readStore() };
+  const state = { period: 'all', regime: 'all', pattern: 'all', combo: 'all', ...readStore() };
+  const REGIMES = ['강세', '보통', '약세'];
+  // 보유 중 시장: 같은 기간 지수 수익률로 가른다. 열흘이면 ±3% 를 넘나드는 게 보통이라
+  // 그 안쪽을 횡보로 본다.
+  const PHASE_BAND = 3;
+  const phaseOf = (r, hz) => {
+    const v = r.idx_ret && r.idx_ret[String(hz)];
+    if (v == null) return null;
+    return v >= PHASE_BAND ? '상승장' : v <= -PHASE_BAND ? '하락장' : '횡보장';
+  };
 
   function readStore() {
     try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; }
@@ -242,6 +263,7 @@ footer p { margin: 0 0 8px; }
     const combos = [...new Set(data.rows.map(r => (r.signals || []).join('+')).filter(Boolean))].sort();
     return [
       { key: 'period', label: '기간', options: [['all', '전체'], ['30', '1개월'], ['90', '3개월']] },
+      { key: 'regime', label: '장세', options: [['all', '전체'], ...REGIMES.map(x => [x, x])] },
       { key: 'pattern', label: '차트', options: [['all', '전체'], ['추세추종', '추세추종'], ['눌림목', '눌림목'], ['20일선 회복', '20일선 회복'], ['none', '미부합']] },
       { key: 'combo', label: '신호', options: [['all', '전체'], ...combos.map(c => [c, c])] },
     ];
@@ -268,6 +290,7 @@ footer p { margin: 0 0 8px; }
   function filtered() {
     const today = dayNumber(data.generated_at.slice(0, 10));
     return data.rows.filter(r =>
+      (state.regime === 'all' || r.regime === state.regime) &&
       (state.pattern === 'all' || (r.pattern || 'none') === state.pattern) &&
       (state.combo === 'all' || (r.signals || []).join('+') === state.combo) &&
       (state.period === 'all' || today - dayNumber(r.date) <= Number(state.period)));
@@ -330,6 +353,28 @@ footer p { margin: 0 0 8px; }
         h('td', { class: tone(st.median) }, pct(st.median)),
         h('td', { class: tone(st.excess) }, pp(st.excess)));
     }));
+  }
+
+  function renderRegimes(rows) {
+    const body = document.querySelector('#regimes tbody');
+    const line = (label, subset, d10only) => {
+      const a = horizon(subset, 5), b = horizon(subset, 10);
+      return h('tr', {},
+        h('td', {}, label),
+        h('td', {}, d10only ? '—' : String(a.n)),
+        h('td', { class: d10only ? '' : tone(a.median) }, d10only || !a.n ? '—' : pct(a.median)),
+        h('td', {}, String(b.n)),
+        h('td', { class: tone(b.median) }, b.n ? pct(b.median) : '—'),
+        h('td', {}, b.n ? `${Math.round(b.win)}%` : '—'),
+        h('td', { class: tone(b.excess) }, b.excessN ? pp(b.excess) : '—'));
+    };
+    const head = text => h('tr', { class: 'group' }, h('td', { colspan: '7' }, text));
+    body.replaceChildren(
+      head('추천 당일 장세'),
+      ...REGIMES.map(x => line(x, rows.filter(r => r.regime === x))),
+      head('보유 10일 동안 시장 (사후)'),
+      ...['상승장', '횡보장', '하락장'].map(x => line(x, rows.filter(r => phaseOf(r, 10) === x), true)),
+    );
   }
 
   // ---- 평균 경로 차트 -----------------------------------------------------
@@ -504,6 +549,7 @@ footer p { margin: 0 0 8px; }
       (r.signals || []).join('+'),
       r.pattern ? `${r.pattern} ${r.pattern_detail || ''}`.trim() : '차트 미부합',
       r.market,
+      r.regime ? `${r.regime}장` : null,
     ].filter(Boolean).join(' · ');
     const article = h('article', { class: 'sig' },
       h('div', { class: 'sig-head' },
@@ -558,6 +604,7 @@ footer p { margin: 0 0 8px; }
     const rows = filtered();
     renderTiles(rows);
     renderTable(rows);
+    renderRegimes(rows);
     series = pathSeries(rows);
     drawChart();
     renderPathTable();
