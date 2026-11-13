@@ -19,7 +19,8 @@
 | YoY 해당 | 당분기(3개월) 매출액·영업이익 **둘 다** 전년 동기 대비 **+20% 이상** |
 | QoQ 해당 | 당분기(3개월) 매출액·영업이익 **둘 다** 직전 분기 대비 **+20% 이상** |
 | TTM 통과 | 최근 4분기 합산 매출액·영업이익 **둘 다** 직전 TTM 대비 **+15% 이상** (대상: YoY 또는 QoQ에 해당한 종목) |
-| 보조 목록 | YoY·QoQ 모두 해당 / TTM·YoY 모두 해당 / TTM·YoY·QoQ 모두 해당 |
+| 보조 목록 | YoY·QoQ 모두 해당 / TTM·YoY 모두 해당 / TTM·YoY·QoQ 모두 해당 / **TTM·YoY만 해당(QoQ 제외)** |
+| 컨센 대비 | YoY 또는 QoQ 해당 대상(86곳)과 TTM 통과(49곳) 각각에 대해 당분기 **컨센서스 대비 실제**(매출·영업이익 서프라이즈 = 실제/컨센−1)를 영업이익 서프라이즈 내림차순으로 정렬. 컨센 없는 종목은 맨 아래 "컨센 없음" |
 
 - 비교 기준값이 0 이하(적자)면 증가율 계산 불가(`n/a`) → 해당에서 제외하고, **흑자전환**(매출 20%↑)은 별도 목록으로 적는다.
 - 재무: **연결 우선**, 없으면 별도. 시총: 네이버 모바일 API, 작성일 종가.
@@ -63,9 +64,10 @@ python3 $T/analyze.py fin3.json                 # 6) YoY/QoQ 판정 -> analysis.
 python3 $T/ksic.py                              # 7) 업종코드 -> ksic.json
 python3 $T/ttm.py                               # 8) TTM 원자료 -> ttm.json
 python3 $T/ttm_final.py                         # 9) TTM 계산·판정 -> ttm_final.json
-python3 $T/gen_md.py analysis.json OUT/YYYY-NQ_실적발표.md '2026년 3분기' '11/09~11/13' ksic.json /home/user/tradesignal-prognosis/data.json
+python3 $T/consensus.py 202609                  # 10) 당분기 컨센서스 -> cons.json (인자: 분기말 YYYYMM, 3Q=202609)
+python3 $T/gen_md.py analysis.json OUT/YYYY-NQ_실적발표.md '2026년 3분기' '11/09~11/13' ksic.json /home/user/tradesignal-prognosis/data.json cons.json ttm_final.json
 python3 $T/gen_ttm_md.py ttm_final.json OUT/YYYY-NQ_TTM15.md '2026년 3분기' ksic.json /home/user/tradesignal-prognosis/data.json
-python3 $T/gen_xlsx.py analysis.json ttm_final.json OUT/YYYY-NQ_실적발표.xlsx '2026년 3분기' ksic.json /home/user/tradesignal-prognosis/data.json
+python3 $T/gen_xlsx.py analysis.json ttm_final.json OUT/YYYY-NQ_실적발표.xlsx '2026년 3분기' ksic.json /home/user/tradesignal-prognosis/data.json cons.json
 python3 /root/.claude/skills/synced/*/xlsx/scripts/recalc.py OUT/YYYY-NQ_실적발표.xlsx 120   # 수식 오류 0 확인
 ```
 
@@ -92,7 +94,8 @@ python3 /root/.claude/skills/synced/*/xlsx/scripts/recalc.py OUT/YYYY-NQ_실적�
 ## 7. 산출물과 마무리
 
 - `실적발표/YYYY-NQ_실적발표.md`, `YYYY-NQ_TTM15.md`, `YYYY-NQ_실적발표.xlsx`.
-- 엑셀 시트: 요약(증가율 기준 입력 셀 C5=20%, C6=15%) / 실적전체 / YoY·QoQ 둘다 / QoQ 해당 / YoY 해당 / 각 `_반도체제외` / TTM(최근4분기) / TTM_반도체제외 / TTM·YoY·QoQ 모두(+`_반도체제외`) / 흑자전환·제외·주의. 증가율·해당 여부는 수식.
+- 엑셀 시트: 요약(증가율 기준 입력 셀 C5=20%, C6=15%) / 실적전체 / YoY·QoQ 둘다 / QoQ 해당 / YoY 해당 / 각 `_반도체제외` / TTM(최근4분기) / TTM_반도체제외 / TTM·YoY·QoQ 모두(+`_반도체제외`) / TTM·YoY만 해당(+`_반도체제외`) / 컨센대비(86)·컨센대비(TTM49)(+각 `_반도체제외`) / 흑자전환·제외·주의. 증가율·해당 여부·서프라이즈는 수식.
+- 컨센서스 출처: 네이버 모바일 `finance/quarter`의 당분기 열(`isConsensus=Y`, FnGuide). `N`이면 이미 실제 값으로 바뀐 것이라 컨센 없음으로 처리. **조회 시점의 최신 컨센서스**라 먼저 실적을 낸 기업은 발표 후 조정분이 섞일 수 있으니 결과에 이 한계를 적는다. 컨센서스는 실적 발표 직후(가능하면 조회 시점 기록)에 받아야 정확하다.
 - 끝나면: 현재 개발 브랜치에 커밋·푸시(PR은 사용자가 요청할 때만), 엑셀은 `SendUserFile`로 전달.
 - 최종 보고는 짧게: 요약 숫자(대상·YoY·QoQ·둘다·TTM 통과, 전체 vs 반도체 제외), 대표 종목, 한계(원문 파싱·제외 종목·월요일 제출분). 목록 전체는 파일을 보라고 한다.
 - 절차나 파라미터를 고쳤으면 이 파일(CLAUDE.md)과 `실적발표/README.md`를 같이 갱신한다.

@@ -91,6 +91,50 @@ nx=ttm_sheet('TTM_반도체제외',[r for r in R if r['semi']!='반도체'])
 R3=[r for r in R if r['pass'] and r['tag']=='둘다']   # TTM·YoY·QoQ 모두
 n3=ttm_sheet('TTM·YoY·QoQ 모두',R3)
 ttm_sheet('TTM·YoY·QoQ 모두_반도체제외',[r for r in R3 if r['semi']!='반도체'])
+R2=[r for r in R if r['pass'] and r['tag']=='YoY']   # TTM·YoY만 (QoQ 제외)
+ttm_sheet('TTM·YoY만 해당',R2)
+ttm_sheet('TTM·YoY만 해당_반도체제외',[r for r in R2 if r['semi']!='반도체'])
+CS=sys.argv[7] if len(sys.argv)>7 else None   # cons.json (컨센서스)
+if CS:
+    CONS={r['code']:r for r in json.load(open(CS))}
+    TTMP={r['code']:r for r in R}
+    CR=[]
+    for d in rows:
+        if not(d['yoy'] or d['qoq']): continue
+        c=CONS.get(d['code'],{})
+        ok=c.get('flag')=='Y' and c.get('rev') is not None and c.get('op') is not None
+        co=c.get('op') if ok else None
+        sur=(d['op']/1e8/co-1) if (ok and co and co>0) else None
+        CR.append(dict(d=d,cr=c.get('rev') if ok else None,co=co,ttm=bool(TTMP.get(d['code'],{}).get('pass')),
+                       tag='둘다' if d['both'] else ('YoY' if d['yoy'] else 'QoQ'),sur=sur))
+    CR.sort(key=lambda x:(x['sur'] is None,-(x['sur'] or 0),-x['d']['mcap']))
+    def cons_sheet(name,data):
+        ws=wb.create_sheet(name)
+        header(ws,['종목','코드','시총(억)','3분기 구분','TTM 통과','반도체 분류','실제 매출(억)','컨센 매출(억)','매출 서프라이즈','실제 영업이익(억)','컨센 영업이익(억)','영업이익 서프라이즈','판정','재무 기준'])
+        for i,x in enumerate(data,2):
+            d=x['d']
+            vals=[d['name'],d['code'],b(d['mcap']),x['tag'],'O' if x['ttm'] else None,d['semi'] or None,b(d['rev']),x['cr'],None,b(d['op']),x['co'],None,None,('연결' if d['fs']=='연결' else '별도')+('·원문' if d['src']!='API' else '')]
+            for j,v in enumerate(vals,1):
+                if v is not None: ws.cell(i,j,v)
+            ws.cell(i,9,f'=IF(N(H{i})>0,G{i}/H{i}-1,"n/a")');ws.cell(i,12,f'=IF(N(K{i})>0,J{i}/K{i}-1,"n/a")')
+            ws.cell(i,13,f'=IF(AND(ISNUMBER(I{i}),ISNUMBER(L{i})),IF(AND(I{i}>=0,L{i}>=0),"매출·영업 상회",IF(L{i}>=0,"영업만 상회",IF(I{i}>=0,"매출만 상회","하회"))),"컨센 없음")')
+            for j in range(1,15):
+                c=ws.cell(i,j);c.font=font();c.border=BD
+                if j in(3,7,8,10,11):c.number_format='#,##0;(#,##0);-'
+                if j in(9,12):c.number_format='0%;-0%;0%';c.alignment=Alignment(horizontal='right')
+                if j in(4,5,6,13):c.alignment=Alignment(horizontal='center')
+            if d['both']: ws.cell(i,1).fill=GRN
+            if x['cr'] is not None: ws.cell(i,8).font=Font(name=FN,size=10,color='0000FF');ws.cell(i,11).font=Font(name=FN,size=10,color='0000FF')
+        for j,w in enumerate([22,9,11,10,9,10,12,12,11,13,13,13,14,10],1): ws.column_dimensions[L(j)].width=w
+        ws.freeze_panes='C2';ws.auto_filter.ref=f"A1:N{len(data)+1}"
+        n=len(data)+1
+        notes=['컨센서스: 네이버증권(FnGuide) 당분기 컨센서스(파란 글자), 억원. 조회 시점의 최신 컨센서스라 먼저 실적을 낸 기업은 발표 후 조정분이 섞였을 수 있음',
+               '실제 값은 DART(연결 우선). 컨센서스가 없거나 이미 실제 값으로 바뀐 종목은 "컨센 없음"으로 맨 아래. 영업이익 서프라이즈 내림차순 정렬(컨센 영업이익이 0 이하면 n/a)']
+        for k,t in enumerate(notes): ws.cell(n+2+k,1,t).font=font(italic=True)
+    cons_sheet('컨센대비(86)',CR)
+    cons_sheet('컨센대비(86)_반도체제외',[x for x in CR if x['d']['semi']!='반도체'])
+    cons_sheet('컨센대비(TTM49)',[x for x in CR if x['ttm']])
+    cons_sheet('컨센대비(TTM49)_반도체제외',[x for x in CR if x['ttm'] and x['d']['semi']!='반도체'])
 # 요약 표 (전체 / 반도체 제외 / 반도체·경계 제외)
 hdr=['구분','전체','반도체 제외','반도체·경계 제외']
 for k,h in enumerate(hdr):
@@ -122,11 +166,11 @@ def tcount(m,tags):
         c+=(f",{T}!M2:M{n},\"<>반도체\"" if m==1 else (f",{T}!M2:M{n},\"\"" if m==2 else ""))+")"
         parts.append(c)
     return "="+"+".join(parts)
-for r,lab,tags in((15,'TTM·YoY 모두 해당 (= TTM 통과와 동일, QoQ만 해당한 종목은 TTM 탈락)',['둘다','YoY']),(16,'TTM·YoY·QoQ 모두 해당',['둘다'])):
+for r,lab,tags in((15,'TTM·YoY 모두 해당 (= TTM 통과와 동일, QoQ만 해당한 종목은 TTM 탈락)',['둘다','YoY']),(16,'TTM·YoY·QoQ 모두 해당',['둘다']),(17,'TTM·YoY만 해당 (QoQ 제외)',['YoY'])):
     ws0.cell(r,2,lab).font=font();ws0.cell(r,2).border=BD
     for m in range(3):
         c=ws0.cell(r,3+m,tcount(m,tags));c.font=font(bold=True);c.alignment=Alignment(horizontal='center');c.border=BD
-ws0['B18']='반도체 분류: 테마분석(data.json)에 테마가 있으면 그 기준("반도체" 포함 여부), 없는 종목은 KSIC 261*·29271 + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B18'].font=font(italic=True)
+ws0['B19']='반도체 분류: 테마분석(data.json)에 테마가 있으면 그 기준("반도체" 포함 여부), 없는 종목은 KSIC 261*·29271 + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B19'].font=font(italic=True)
 # 흑자전환/제외/주의
 ws2=wb.create_sheet('흑자전환·제외·주의')
 TY=[d for d in rows if d['op_turn_yoy'] and d['rev_yoy'] is not None and d['rev_yoy']>=.2]

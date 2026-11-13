@@ -3,6 +3,8 @@ import json,sys,collections
 src,out,title,period=sys.argv[1:5]
 ks=sys.argv[5] if len(sys.argv)>5 else None   # ksic.json
 thp=sys.argv[6] if len(sys.argv)>6 else None  # data.json(테마분석)
+csp=sys.argv[7] if len(sys.argv)>7 else None  # cons.json(컨센서스)
+tfp=sys.argv[8] if len(sys.argv)>8 else None  # ttm_final.json
 A=json.load(open(src));rows=sorted(A['rows'],key=lambda d:-d['mcap']);excl=A['excl']
 f=lambda v:'n/a' if v is None else f"{v*100:+,.0f}%"
 e=lambda v:'-' if v is None else f"{v/1e8:,.0f}"
@@ -44,6 +46,32 @@ if ks or thp:
     s+=f"### 반도체 제외 · YoY 해당 ({len(NY)})\n\n★ = QoQ도 해당\n\n"+tbl(NY)+"\n"
     ex=[d for d in rows if d['semi']=='반도체' and (d['yoy'] or d['qoq'])]
     s+=f"### 제외된 반도체 종목 ({len(ex)}, YoY 또는 QoQ 해당분)\n\n"+', '.join(f"{d['name']}({'테마' if d['semi_why'].startswith('테마') else ('업종코드' if d['semi_why'].startswith('KSIC') else '수동')})" for d in ex)+"\n\n"
+if csp:
+    CONS={r['code']:r for r in json.load(open(csp))}
+    TP={r['code'] for r in json.load(open(tfp))['rows'] if r['pass']} if tfp else set()
+    CR=[]
+    for d in rows:
+        if not(d['yoy'] or d['qoq']): continue
+        c=CONS.get(d['code'],{})
+        if not(c.get('flag')=='Y' and c.get('rev') is not None and c.get('op') is not None): continue
+        sr=d['rev']/1e8/c['rev']-1 if c['rev']>0 else None
+        so=d['op']/1e8/c['op']-1 if c['op']>0 else None
+        CR.append(dict(d=d,cr=c['rev'],co=c['op'],sr=sr,so=so,ttm=d['code'] in TP))
+    CR.sort(key=lambda x:(x['so'] is None,-(x['so'] or 0)))
+    def ctbl(L):
+        h="| 종목 | 코드 | 시총(억) | TTM | 실제 매출(억) | 컨센 매출(억) | 매출 서프라이즈 | 실제 영업이익(억) | 컨센 영업이익(억) | 영업이익 서프라이즈 | 판정 |\n|---|---|--:|---|--:|--:|--:|--:|--:|--:|---|\n"
+        for x in L:
+            d=x['d']
+            v='매출·영업 상회' if (x['sr'] is not None and x['so'] is not None and x['sr']>=0 and x['so']>=0) else ('영업만 상회' if (x['so'] or -1)>=0 else ('매출만 상회' if (x['sr'] or -1)>=0 else '하회'))
+            h+=f"| {d['name']}{' †' if d.get('semi')=='경계' else ''}{' (반도체)' if d.get('semi')=='반도체' else ''} | {d['code']} | {d['mcap']/1e8:,.0f} | {'O' if x['ttm'] else ''} | {e(d['rev'])} | {x['cr']:,.0f} | {f(x['sr'])} | {e(d['op'])} | {x['co']:,.0f} | {f(x['so'])} | {v} |\n"
+        return h
+    T49=[x for x in CR if x['ttm']]
+    nb=lambda L:sum(1 for x in L if x['sr'] is not None and x['so'] is not None and x['sr']>=0 and x['so']>=0)
+    s+="## 컨센서스 대비 (영업이익 서프라이즈 순)\n\n"
+    s+="컨센서스는 네이버증권(FnGuide) 당분기 컨센서스(조회 시점 최신). 먼저 실적을 낸 기업은 발표 후 조정분이 섞였을 수 있고, 컨센서스가 없는 종목은 제외했다. 전체 종목(컨센 없는 곳 포함)은 엑셀 `컨센대비(86)`·`컨센대비(TTM49)` 시트.\n\n"
+    s+=f"- YoY 또는 QoQ 해당 대상 중 컨센서스 확보 {len(CR)}곳 → 매출·영업이익 모두 상회 {nb(CR)}곳\n- TTM 통과 중 컨센서스 확보 {len(T49)}곳 → 매출·영업이익 모두 상회 {nb(T49)}곳\n\n"
+    s+=f"### TTM 통과 종목 ({len(T49)})\n\n"+ctbl(T49)+"\n"
+    s+=f"### YoY·QoQ 해당 대상 상위 20 / 하위 5 (전체 {len(CR)})\n\n"+ctbl(CR[:20])+"\n...\n\n"+ctbl(CR[-5:])+"\n"
 s+="## 주의·한계\n\n"
 s+="- 접수일 기준 이번 주(월~금) 공시만 포함. 법정 제출 마감이 토요일이면 다음 영업일로 넘어가므로 마감 직후 월요일 제출분은 다음 갱신 때 추가 필요.\n"
 s+="- 11/13 접수분은 DART 재무 API에 아직 반영되지 않아 **보고서 원문을 직접 파싱**한 종목이 있음(표의 '원문' 표기). 파서는 API 값과 대조 검증함.\n"
