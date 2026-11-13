@@ -43,7 +43,7 @@ if ks or thp:
     s+=f"### 반도체 제외 · QoQ 해당 ({len(NQ)})\n\n★ = YoY도 해당\n\n"+tbl(NQ)+"\n"
     s+=f"### 반도체 제외 · YoY 해당 ({len(NY)})\n\n★ = QoQ도 해당\n\n"+tbl(NY)+"\n"
     ex=[d for d in rows if d['semi']=='반도체' and (d['yoy'] or d['qoq'])]
-    s+=f"### 제외된 반도체 종목 ({len(ex)}, YoY 또는 QoQ 해당분)\n\n"+', '.join(f"{d['name']}({d['semi_why'].split(':')[0].split(' ')[0]})" for d in ex)+"\n\n"
+    s+=f"### 제외된 반도체 종목 ({len(ex)}, YoY 또는 QoQ 해당분)\n\n"+', '.join(f"{d['name']}({'테마' if d['semi_why'].startswith('테마') else ('업종코드' if d['semi_why'].startswith('KSIC') else '수동')})" for d in ex)+"\n\n"
 s+="## 주의·한계\n\n"
 s+="- 접수일 기준 이번 주(월~금) 공시만 포함. 법정 제출 마감이 토요일이면 다음 영업일로 넘어가므로 마감 직후 월요일 제출분은 다음 갱신 때 추가 필요.\n"
 s+="- 11/13 접수분은 DART 재무 API에 아직 반영되지 않아 **보고서 원문을 직접 파싱**한 종목이 있음(표의 '원문' 표기). 파서는 API 값과 대조 검증함.\n"
