@@ -29,6 +29,12 @@ if ks or thp:
     s+="분류 기준: 테마분석(`data.json`)에 테마가 있으면 \"반도체\" 포함 여부로, 없는 종목은 업종코드(KSIC 261*·29271)와 소부장 수동 분류로 판단. †는 반도체 비중이 애매해 제외하지 않은 종목(경계까지 빼면 %d곳).\n\n"%len(P3)
     s+=tbl(P2)+"\n"
     s+="제외된 반도체 통과 종목(%d): "%(len(P)-len(P2))+', '.join(r['name'] for r in P if r['semi']=='반도체')+"\n\n"
+PY=[r for r in P if r['tag'] in('둘다','YoY')];P3=[r for r in P if r['tag']=='둘다']
+s+=f"## 4. TTM·YoY 모두 해당 ({len(PY)})\n\n"
+s+=f"TTM 통과 {len(P)}곳은 전부 YoY도 해당하므로 1번 목록과 같음(QoQ만 해당한 종목은 TTM에서 모두 탈락). 반도체 제외 시 {len([r for r in PY if r.get('semi')!='반도체'])}곳.\n\n"
+s+=f"## 5. TTM·YoY·QoQ 모두 해당 ({len(P3)})\n\n"+tbl(P3)+"\n"
+X3=[r for r in P3 if r.get('semi')!='반도체']
+s+=f"### 반도체 제외 ({len(X3)})\n\n"+tbl(X3)+"\n"
 s+="## 비교 불가\n\n"+('\n'.join(f"- {n}({c}): {w}" for n,c,w in ex) if ex else '없음')+"\n\n"
 s+="## 주의\n\n- 증가율 n/a는 직전 TTM 영업이익이 적자(흑자전환 포함)라 증가율을 계산할 수 없는 경우로, 통과에 넣지 않음\n- 연간 보고서(FY2025·FY2024)와 2025년 3분기 보고서 값을 합산하므로, 이후 재작성(합병·분할·회계변경)된 기업은 왜곡될 수 있음\n- 3분기 구분: 둘다 = YoY·QoQ 모두 해당 / YoY·QoQ = 해당 항목만\n- 유바이오로직스는 2026년만 연결로 바뀌어 별도 기준으로 통일해 계산\n- 한화엔진은 2024년 1~3분기만 별도 값(연결과 동일 범위) 사용\n"
 open(out,'w').write(s);print(len(P),len(N),len(ex))

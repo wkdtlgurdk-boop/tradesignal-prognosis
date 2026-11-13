@@ -1,17 +1,19 @@
 import json,sys
 T=json.load(open('ttm.json'));A={d['code']:d for d in json.load(open('analysis.json'))['rows']}
-P=json.load(open('patch.json'))
+import os
+Q3_2026=os.environ.get('QTAG')=='2026-3Q'   # 아래 수동 패치는 2026년 3분기 전용
+P=json.load(open('patch.json')) if (Q3_2026 and os.path.exists('patch.json')) else {}
 for t in T:
-    if t['code']=='082740':
+    if Q3_2026 and t['code']=='082740':
         # 연결(2026 3Q 연결, 연간 연결) + 2024 9M은 별도 보완
         t['rev']['m24']=875936605980; t['op']['m24']=53336713981
-    if t['code']=='206650':
+    if Q3_2026 and t['code']=='206650' and P:
         t['rev']=P['uby']['rev'];t['op']=P['uby']['op'];t['fs']='OFS'
 rows=[];excl=[]
 for t in T:
     a=A[t['code']];r=dict(code=t['code'],name=t['name'],mcap=a['mcap'],fs=t['fs'],src=t['src'],
         tag='둘다' if a['both'] else ('YoY' if a['yoy'] else 'QoQ'))
-    if t['code']=='499790': excl.append((t['name'],t['code'],'2024년 연결 규모가 미미(FY24 연결 매출 383억→FY25 4,817억)해 직전 TTM 비교 불가'));continue
+    if Q3_2026 and t['code']=='499790': excl.append((t['name'],t['code'],'2024년 연결 규모가 미미(FY24 연결 매출 383억→FY25 4,817억)해 직전 TTM 비교 불가'));continue
     bad=False
     for k in('rev','op'):
         v=t[k]

@@ -23,9 +23,9 @@ def work(d):
     out={}
     try:
         L26=None
-        if o['src']=='API': L26=stmt(cc,2026,'11014',fs)
-        L25=stmt(cc,2025,'11014',fs)      # 2025 3Q: frmtrm_add = 2024 9M
-        LA=stmt(cc,2025,'11011',fs)       # FY2025 annual: thstrm FY25, frmtrm FY24
+        if o['src']=='API': L26=stmt(cc,fin.YEAR,fin.RC_CUR,fs)
+        L25=stmt(cc,fin.YEAR-1,fin.RC_CUR,fs)  # 전년 동분기 보고서: frmtrm_add = 전전년 누적
+        LA=stmt(cc,fin.YEAR-1,'11011',fs)  # 전년 사업보고서: thstrm=전년 연간, frmtrm=전전년 연간
         doc=None
         if o['src']!='API':
             p=D.parse(D.fetch(x['rcept_no']))
@@ -34,13 +34,13 @@ def work(d):
             v=dict(m26=None,m25=None,m24=None,fy25=None,fy24=None)
             if L26:
                 a=fin.pick(L26,ids,nms)
-                if a: v['m26']=fin.num(a.get('thstrm_add_amount'));v['m25']=fin.num(a.get('frmtrm_add_amount'))
+                if a: v['m26']=fin.num(a.get('thstrm_add_amount') or a.get('thstrm_amount'));v['m25']=fin.num(a.get('frmtrm_add_amount') or a.get('frmtrm_amount'))
             elif doc:
                 fsn,u,res=doc;r=res.get(key)
                 if r and len(r)>=4: v['m26']=r[1]*u;v['m25']=r[3]*u
             if L25:
                 a=fin.pick(L25,ids,nms)
-                if a: v['m24']=fin.num(a.get('frmtrm_add_amount'))
+                if a: v['m24']=fin.num(a.get('frmtrm_add_amount') or a.get('frmtrm_amount'))
             if LA:
                 a=fin.pick(LA,ids,nms)
                 if a: v['fy25']=fin.num(a.get('thstrm_amount'));v['fy24']=fin.num(a.get('frmtrm_amount'))

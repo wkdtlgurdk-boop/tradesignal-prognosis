@@ -1,5 +1,6 @@
 import os,json,urllib.request,urllib.parse,concurrent.futures as cf,time
 K=os.environ['DART_API_KEY']
+YEAR=int(os.environ.get('YEAR','2026'));RC_CUR=os.environ.get('RC_CUR','11014');RC_PREV=os.environ.get('RC_PREV','11012')  # 당분기/직전분기 보고서 코드
 filings=json.load(open('filings.json'))
 mc={c:(n,mv,v) for c,n,mv,v in json.load(open('mcap.json'))}
 corp={}
@@ -7,7 +8,7 @@ for x in filings:
     if x['stock_code'].strip(): corp.setdefault(x['stock_code'],x)
 targets=[c for c in corp if mc.get(c) and mc[c][2] and mc[c][2]>=2000*10**8]
 def call(corp_code,rc,fs):
-    q=urllib.parse.urlencode(dict(crtfc_key=K,corp_code=corp_code,bsns_year=2026,reprt_code=rc,fs_div=fs))
+    q=urllib.parse.urlencode(dict(crtfc_key=K,corp_code=corp_code,bsns_year=YEAR,reprt_code=rc,fs_div=fs))
     for i in range(3):
         try: return json.load(urllib.request.urlopen("https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?"+q,timeout=30))
         except Exception: time.sleep(1.5)
@@ -34,9 +35,9 @@ def getfs(cc,rc):
 def work(c):
     cc=corp[c]['corp_code']
     out=dict(code=c,name=mc[c][0],mcap=mc[c][2],corp_code=cc,rcept_no=corp[c]['rcept_no'],rcept_dt=corp[c]['rcept_dt'])
-    fs3,l3=getfs(cc,'11014')
+    fs3,l3=getfs(cc,RC_CUR)
     if not l3: out['err']='3Q 재무 없음';return out
-    fs2,l2=getfs(cc,'11012')
+    fs2,l2=getfs(cc,RC_PREV)
     out['fs']=fs3
     for key,ids,nms in(('rev',REV_ID,REV_NM),('op',OP_ID,OP_NM)):
         a=pick(l3,ids,nms)

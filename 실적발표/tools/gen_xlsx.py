@@ -88,6 +88,9 @@ def ttm_sheet(name,data):
     return n
 n=ttm_sheet('TTM(최근4분기)',R)
 nx=ttm_sheet('TTM_반도체제외',[r for r in R if r['semi']!='반도체'])
+R3=[r for r in R if r['pass'] and r['tag']=='둘다']   # TTM·YoY·QoQ 모두
+n3=ttm_sheet('TTM·YoY·QoQ 모두',R3)
+ttm_sheet('TTM·YoY·QoQ 모두_반도체제외',[r for r in R3 if r['semi']!='반도체'])
 # 요약 표 (전체 / 반도체 제외 / 반도체·경계 제외)
 hdr=['구분','전체','반도체 제외','반도체·경계 제외']
 for k,h in enumerate(hdr):
@@ -112,7 +115,18 @@ for k,(lab,spec) in enumerate(items):
         elif spec=='ttm': fm=cnt('K','O',n,T,m)
         else: fm=cnt(spec[0],spec[1],N,F,m)
         c=ws0.cell(r,col,fm);c.font=font(bold=True);c.alignment=Alignment(horizontal='center');c.border=BD
-ws0['B16']='반도체 분류: 테마분석(data.json)에 테마가 있으면 그 기준("반도체" 포함 여부), 없는 종목은 KSIC 261*·29271 + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B16'].font=font(italic=True)
+def tcount(m,tags):
+    parts=[]
+    for tg in tags:
+        c=f"COUNTIFS({T}!K2:K{n},\"O\",{T}!D2:D{n},\"{tg}\""
+        c+=(f",{T}!M2:M{n},\"<>반도체\"" if m==1 else (f",{T}!M2:M{n},\"\"" if m==2 else ""))+")"
+        parts.append(c)
+    return "="+"+".join(parts)
+for r,lab,tags in((15,'TTM·YoY 모두 해당 (= TTM 통과와 동일, QoQ만 해당한 종목은 TTM 탈락)',['둘다','YoY']),(16,'TTM·YoY·QoQ 모두 해당',['둘다'])):
+    ws0.cell(r,2,lab).font=font();ws0.cell(r,2).border=BD
+    for m in range(3):
+        c=ws0.cell(r,3+m,tcount(m,tags));c.font=font(bold=True);c.alignment=Alignment(horizontal='center');c.border=BD
+ws0['B18']='반도체 분류: 테마분석(data.json)에 테마가 있으면 그 기준("반도체" 포함 여부), 없는 종목은 KSIC 261*·29271 + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B18'].font=font(italic=True)
 # 흑자전환/제외/주의
 ws2=wb.create_sheet('흑자전환·제외·주의')
 TY=[d for d in rows if d['op_turn_yoy'] and d['rev_yoy'] is not None and d['rev_yoy']>=.2]

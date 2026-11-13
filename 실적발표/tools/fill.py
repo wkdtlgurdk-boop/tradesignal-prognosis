@@ -8,7 +8,7 @@ for x in res:
     t=D.fetch(x['rcept_no']); p=D.parse(t) if t else None
     if not p: x['err']='원문 미생성/파싱불가' if not t else '파싱불가'; continue
     fs,u,d=p
-    fs2,l2=fin.getfs(x['corp_code'],'11012')
+    fs2,l2=fin.getfs(x['corp_code'],fin.RC_PREV)
     out={}
     for key,ids,nms in(('rev',fin.REV_ID,fin.REV_NM),('op',fin.OP_ID,fin.OP_NM)):
         v=d.get(key)
