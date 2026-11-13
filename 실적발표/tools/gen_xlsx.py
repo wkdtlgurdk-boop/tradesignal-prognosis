@@ -6,25 +6,9 @@ from openpyxl.utils import get_column_letter as L
 an,tt,out,title=sys.argv[1:5]
 ks=sys.argv[5] if len(sys.argv)>5 else None
 thp=sys.argv[6] if len(sys.argv)>6 else None   # data.json (테마분석)
-TH={}
-if thp:
-    for r in json.load(open(thp))['rows']: TH.setdefault(r['code'],[]).extend(t for t in r.get('themes',[]) if t not in TH.get(r['code'],[]))
+from semi import make
+classify=make(ks,thp)
 A=json.load(open(an));TT=json.load(open(tt))
-KS={c:i for c,i,n in json.load(open(ks))} if ks else {}
-SEMI_MANUAL={'주성엔지니어링','심텍','심텍홀딩스','대덕전자','티엘비','해성디에스','티씨케이','샘씨엔에스','티에프이','와이씨','디아이','한솔아이원스','리노공업','인텍플러스','아스플로','케이씨텍','엠케이전자','에스앤에스텍'}
-BORDER={'파크시스템스','한양이엔지','엘티씨','상아프론테크','한선엔지니어링','디케이티','PS일렉트로닉스','LIG아큐버','태성','SFA','디아이티','코리아써키트','나노신소재'}
-NOT_SEMI={'신성이엔지'}
-def classify(code,name):
-    k=KS.get(code,'')
-    ts=TH.get(code)
-    if ts:  # 테마분석 우선
-        return ('반도체' if any('반도체' in t for t in ts) else ''),'테마분석: '+', '.join(ts)
-    if name in NOT_SEMI: return '','업종코드상 반도체이나 클린룸·태양광 중심이라 제외 대상 아님'
-    if name in SEMI_MANUAL: return '반도체','소부장(수동 분류)'
-    if name in BORDER: return '경계','반도체 비중 애매(수동 분류, 제외 안 함)'
-    if k.startswith('261'): return '반도체',f'KSIC {k} 반도체 제조업'
-    if k=='29271': return '반도체',f'KSIC {k} 반도체 제조용 기계'
-    return '',''
 for d in A['rows']: d['semi'],d['semi_why']=classify(d['code'],d['name'])
 for r in TT['rows']: r['semi'],r['semi_why']=classify(r['code'],r['name'])
 

@@ -1,13 +1,15 @@
 """analysis.json -> 분기 실적발표 md 생성. 사용: python3 gen_md.py analysis.json 출력.md '2026년 3분기' '11/09~11/13' """
 import json,sys,collections
 src,out,title,period=sys.argv[1:5]
+ks=sys.argv[5] if len(sys.argv)>5 else None   # ksic.json
+thp=sys.argv[6] if len(sys.argv)>6 else None  # data.json(테마분석)
 A=json.load(open(src));rows=sorted(A['rows'],key=lambda d:-d['mcap']);excl=A['excl']
 f=lambda v:'n/a' if v is None else f"{v*100:+,.0f}%"
 e=lambda v:'-' if v is None else f"{v/1e8:,.0f}"
 def tbl(L,star=True):
     h="| 종목 | 코드 | 시총(억) | 매출(억) | 매출 YoY | 매출 QoQ | 영업이익(억) | 영업이익 YoY | 영업이익 QoQ | 기준 |\n|---|---|--:|--:|--:|--:|--:|--:|--:|---|\n"
     for d in L:
-        nm=d['name']+(' ★' if star and d['both'] else '')
+        nm=d['name']+(' ★' if star and d['both'] else '')+(' †' if d.get('semi')=='경계' else '')
         h+=f"| {nm} | {d['code']} | {d['mcap']/1e8:,.0f} | {e(d['rev'])} | {f(d['rev_yoy'])} | {f(d['rev_qoq'])} | {e(d['op'])} | {f(d['op_yoy'])} | {f(d['op_qoq'])} | {d['fs']}{'·원문' if d['src']!='API' else ''} |\n"
     return h
 Y=[d for d in rows if d['yoy']];Q=[d for d in rows if d['qoq']];B=[d for d in rows if d['both']]
@@ -25,6 +27,23 @@ s+=f"## 3. YoY 해당 ({len(Y)})\n\n★ = QoQ도 해당\n\n"+tbl(Y)+"\n"
 s+="## 참고: 영업이익 흑자전환 (매출 20%↑, 비교 기준 적자라 증가율 계산 불가 → 위 목록에서 제외)\n\n"
 for nm,L in(('YoY 흑자전환',TY),('QoQ 흑자전환',TQ)):
     s+=f"**{nm}** ({len(L)}): "+(', '.join(f"{d['name']}({d['code']})" for d in L) if L else '없음')+"\n\n"
+if ks or thp:
+    from semi import make
+    cl=make(ks,thp)
+    for d in rows: d['semi'],d['semi_why']=cl(d['code'],d['name'])
+    xs=lambda L:[d for d in L if d['semi']!='반도체']
+    xb=lambda L:[d for d in L if d['semi']=='']
+    NY,NQ,NB=xs(Y),xs(Q),xs(B)
+    s+="## 반도체 제외\n\n"
+    s+="분류 기준: 테마분석(`data.json`)에 테마가 있으면 \"반도체\" 포함 여부로, 없는 종목은 업종코드(KSIC 261*·29271)와 소부장 수동 분류로 판단. †는 반도체 비중이 애매해 제외하지 않은 종목.\n\n"
+    s+="| 구분 | 전체 | 반도체 제외 | 반도체·경계 제외 |\n|---|--:|--:|--:|\n"
+    for lab,L in(('분석 대상',rows),('YoY 해당',Y),('QoQ 해당',Q),('YoY·QoQ 모두 해당',B)):
+        s+=f"| {lab} | {len(L)} | {len(xs(L))} | {len(xb(L))} |\n"
+    s+=f"\n### 반도체 제외 · YoY·QoQ 모두 해당 ({len(NB)})\n\n"+tbl(NB,False)+"\n"
+    s+=f"### 반도체 제외 · QoQ 해당 ({len(NQ)})\n\n★ = YoY도 해당\n\n"+tbl(NQ)+"\n"
+    s+=f"### 반도체 제외 · YoY 해당 ({len(NY)})\n\n★ = QoQ도 해당\n\n"+tbl(NY)+"\n"
+    ex=[d for d in rows if d['semi']=='반도체' and (d['yoy'] or d['qoq'])]
+    s+=f"### 제외된 반도체 종목 ({len(ex)}, YoY 또는 QoQ 해당분)\n\n"+', '.join(f"{d['name']}({d['semi_why'].split(':')[0].split(' ')[0]})" for d in ex)+"\n\n"
 s+="## 주의·한계\n\n"
 s+="- 접수일 기준 이번 주(월~금) 공시만 포함. 법정 제출 마감이 토요일이면 다음 영업일로 넘어가므로 마감 직후 월요일 제출분은 다음 갱신 때 추가 필요.\n"
 s+="- 11/13 접수분은 DART 재무 API에 아직 반영되지 않아 **보고서 원문을 직접 파싱**한 종목이 있음(표의 '원문' 표기). 파서는 API 값과 대조 검증함.\n"
