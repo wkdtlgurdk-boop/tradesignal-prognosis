@@ -5,6 +5,10 @@ from openpyxl.styles import Font,PatternFill,Alignment,Border,Side
 from openpyxl.utils import get_column_letter as L
 an,tt,out,title=sys.argv[1:5]
 ks=sys.argv[5] if len(sys.argv)>5 else None
+thp=sys.argv[6] if len(sys.argv)>6 else None   # data.json (테마분석)
+TH={}
+if thp:
+    for r in json.load(open(thp))['rows']: TH.setdefault(r['code'],[]).extend(t for t in r.get('themes',[]) if t not in TH.get(r['code'],[]))
 A=json.load(open(an));TT=json.load(open(tt))
 KS={c:i for c,i,n in json.load(open(ks))} if ks else {}
 SEMI_MANUAL={'주성엔지니어링','심텍','심텍홀딩스','대덕전자','티엘비','해성디에스','티씨케이','샘씨엔에스','티에프이','와이씨','디아이','한솔아이원스','리노공업','인텍플러스','아스플로','케이씨텍','엠케이전자','에스앤에스텍'}
@@ -12,6 +16,9 @@ BORDER={'파크시스템스','한양이엔지','엘티씨','상아프론테크',
 NOT_SEMI={'신성이엔지'}
 def classify(code,name):
     k=KS.get(code,'')
+    ts=TH.get(code)
+    if ts:  # 테마분석 우선
+        return ('반도체' if any('반도체' in t for t in ts) else ''),'테마분석: '+', '.join(ts)
     if name in NOT_SEMI: return '','업종코드상 반도체이나 클린룸·태양광 중심이라 제외 대상 아님'
     if name in SEMI_MANUAL: return '반도체','소부장(수동 분류)'
     if name in BORDER: return '경계','반도체 비중 애매(수동 분류, 제외 안 함)'
@@ -121,7 +128,7 @@ for k,(lab,spec) in enumerate(items):
         elif spec=='ttm': fm=cnt('K','O',n,T,m)
         else: fm=cnt(spec[0],spec[1],N,F,m)
         c=ws0.cell(r,col,fm);c.font=font(bold=True);c.alignment=Alignment(horizontal='center');c.border=BD
-ws0['B16']='반도체 분류: KSIC 261*(반도체 제조)·29271(반도체 제조용 기계) + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B16'].font=font(italic=True)
+ws0['B16']='반도체 분류: 테마분석(data.json)에 테마가 있으면 그 기준("반도체" 포함 여부), 없는 종목은 KSIC 261*·29271 + 소부장 수동 분류. 경계 종목은 "반도체·경계 제외" 열에서만 빠짐. 분류는 각 시트의 S열(TTM은 M열)에서 확인';ws0['B16'].font=font(italic=True)
 # 흑자전환/제외/주의
 ws2=wb.create_sheet('흑자전환·제외·주의')
 TY=[d for d in rows if d['op_turn_yoy'] and d['rev_yoy'] is not None and d['rev_yoy']>=.2]
