@@ -1,0 +1,256 @@
+<meta name="dash-one-writer">
+<style>
+/* 레이아웃: 제목+한 줄 요약 → 구분별 집계표 → 보유/관심 점검표(첫 열 고정, 가로 스크롤) → 컨센 대비 영업이익 막대 → 주의 */
+.wk{display:flex;flex-direction:column;gap:var(--cds-gap-xl,32px);font-family:var(--font-anthropic-sans);color:var(--color-fg);min-width:0}
+.wk-title{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title,26px);margin:0 0 4px;line-height:1.2;text-wrap:balance}
+.wk-meta{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px)}
+.wk-take{margin:var(--cds-gap-md,12px) 0 0;font-size:var(--cds-font-size-body,15px);line-height:1.6;max-width:62ch}
+.wk-take b{font-variant-numeric:tabular-nums;font-weight:var(--cds-font-weight-medium,600)}
+.wk-sec{display:flex;flex-direction:column;gap:var(--cds-gap-sm,8px);min-width:0}
+.wk-sec h2{margin:0;font-size:var(--cds-font-size-heading,18px);font-weight:var(--cds-font-weight-medium,600)}
+.wk-note{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);line-height:1.6;max-width:70ch}
+.wk-scroll{overflow-x:auto;border:1px solid var(--color-border-line);border-radius:var(--cds-radius,8px);background:var(--color-panel)}
+.wk-table{border-collapse:separate;border-spacing:0;width:100%;font-size:var(--cds-font-size-caption,12.5px);font-variant-numeric:tabular-nums}
+.wk-table th,.wk-table td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--color-border-line)}
+.wk-table thead th{color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium,500);font-size:11.5px;position:sticky;top:0;background:var(--color-panel)}
+.wk-table tbody tr:last-child td{border-bottom:0}
+.wk-table th:first-child,.wk-table td:first-child{text-align:left;position:sticky;left:0;background:var(--color-panel);z-index:1}
+.wk-table td:first-child{font-weight:var(--cds-font-weight-medium,600)}
+.wk-table .g{border-left:1px solid var(--color-border-line)}
+.wk-table td.txt{text-align:left;color:var(--color-fg-muted);white-space:normal;min-width:190px;font-size:11.5px}
+.wk-table td.code{color:var(--color-fg-muted)}
+.pos{color:var(--color-ok);font-weight:var(--cds-font-weight-medium,600)}
+.neg{color:var(--color-bad)}
+.pill{display:inline-block;min-width:34px;text-align:center;padding:1px 8px;border-radius:999px;font-size:11.5px;border:1px solid var(--color-border-line);color:var(--color-fg-muted)}
+.pill.ok{color:var(--color-ok);border-color:var(--color-ok);font-weight:var(--cds-font-weight-medium,600)}
+.pill.hold{color:var(--color-warn);border-color:var(--color-warn)}
+.pill.bad{color:var(--color-bad);border-color:var(--color-bad)}
+.wk-chart{position:relative;min-height:120px}
+.wk-chart svg{display:block;width:100%;height:auto}
+.wk-chart text{font-family:var(--font-anthropic-sans);font-size:12px;fill:var(--color-fg)}
+.wk-chart .mut{fill:var(--cds-text-secondary,var(--color-fg-muted))}
+.wk-tip{position:absolute;pointer-events:none;background:var(--cds-surface-popover,var(--color-panel));border:1px solid var(--cds-border,var(--color-border-line));box-shadow:var(--cds-shadow-popover,0 2px 8px rgba(0,0,0,.15));border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.5;color:var(--cds-text-secondary,var(--color-fg));white-space:nowrap;z-index:5}
+.wk-foot{display:flex;flex-direction:column;gap:6px;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);line-height:1.6;max-width:72ch}
+.wk-foot p{margin:0}
+[data-dash-source-state=refreshing]{opacity:.5}
+@media (max-width:560px){.wk-title{font-size:22px}}
+</style>
+
+<div class="wk">
+  <header>
+    <h1 class="wk-title" id="top">관심·보유 종목 실적 점검</h1>
+    <p class="wk-meta">2026년 3분기 · 점검일 11/14 · 금액 단위 억원</p>
+    <p class="wk-take" data-draw="take">—</p>
+  </header>
+
+  <section class="wk-sec" id="summary">
+    <h2>한눈에 보기</h2>
+    <div class="wk-scroll">
+      <table class="wk-table" data-source="summary" data-row-key="group">
+        <thead><tr>
+          <th data-field="group">구분</th><th data-field="total">종목</th><th data-field="released">3분기 발표</th>
+          <th data-field="yoy">YoY 통과</th><th data-field="qoq">QoQ 통과</th><th data-field="ttm">TTM 통과</th><th data-field="beat">컨센 상회</th>
+        </tr></thead>
+        <tbody data-draw="sumRows"></tbody>
+      </table>
+    </div>
+    <p class="wk-note">통과 기준: 매출·영업이익이 둘 다 YoY·QoQ +20% 이상, TTM(최근 4분기 합산) +15% 이상. 컨센 상회는 매출·영업이익이 모두 컨센서스 이상일 때입니다.</p>
+  </section>
+
+  <section class="wk-sec" id="holdings">
+    <h2>보유종목</h2>
+    <p class="wk-note">매매일지(10/25)에서 보유중으로 남은 4종목을 쓴 임시 목록입니다. 한투 API 조회 결과를 받으면 바꿉니다.</p>
+    <div class="wk-scroll">
+      <table class="wk-table" data-source="scores" data-row-key="code">
+        <thead><tr>
+          <th data-field="name">종목</th><th data-field="code">코드</th><th data-field="mcap">시총</th>
+          <th class="g" data-field="yoy_ok">YoY</th><th data-field="qoq_ok">QoQ</th><th data-field="ttm_ok">TTM</th><th data-field="verdict">컨센 대비</th>
+          <th class="g" data-field="rev_yoy">매출 YoY</th><th data-field="op_yoy">영업 YoY</th><th data-field="rev_qoq">매출 QoQ</th><th data-field="op_qoq">영업 QoQ</th>
+          <th class="g" data-field="ttm_rev_g">TTM 매출</th><th data-field="ttm_op_g">TTM 영업</th>
+          <th class="g" data-field="rev_sur">매출 서프라이즈</th><th data-field="op_sur">영업 서프라이즈</th><th class="g" data-field="note">비고</th>
+        </tr></thead>
+        <tbody data-draw="holdRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wk-sec" id="watch">
+    <h2>관심종목</h2>
+    <p class="wk-note">「보유종목 매수 체크리스트 대장」의 14종목입니다. 시총 순이고, 아직 발표하지 않은 종목은 맨 아래입니다.</p>
+    <div class="wk-scroll">
+      <table class="wk-table" data-source="scores" data-row-key="code">
+        <thead><tr>
+          <th data-field="name">종목</th><th data-field="code">코드</th><th data-field="mcap">시총</th>
+          <th class="g" data-field="yoy_ok">YoY</th><th data-field="qoq_ok">QoQ</th><th data-field="ttm_ok">TTM</th><th data-field="verdict">컨센 대비</th>
+          <th class="g" data-field="rev_yoy">매출 YoY</th><th data-field="op_yoy">영업 YoY</th><th data-field="rev_qoq">매출 QoQ</th><th data-field="op_qoq">영업 QoQ</th>
+          <th class="g" data-field="ttm_rev_g">TTM 매출</th><th data-field="ttm_op_g">TTM 영업</th>
+          <th class="g" data-field="rev_sur">매출 서프라이즈</th><th data-field="op_sur">영업 서프라이즈</th><th class="g" data-field="note">비고</th>
+        </tr></thead>
+        <tbody data-draw="watchRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wk-sec" id="surprise">
+    <h2>컨센서스 대비 영업이익</h2>
+    <p class="wk-note">실제 영업이익 ÷ 컨센서스 − 1. 오른쪽(초록)이 컨센서스를 웃돈 종목입니다. ±100%를 넘는 값은 막대를 잘라 그렸고 숫자는 실제 값입니다.</p>
+    <div class="wk-chart" data-draw="surprise" data-source="scores"></div>
+  </section>
+
+  <section class="wk-foot" id="caveats">
+    <p>컨센서스는 네이버증권(FnGuide)의 조회 시점 값이라, 먼저 실적을 낸 기업은 발표 후 조정분이 섞였을 수 있습니다. 컨센서스가 없거나 이미 실제 값으로 바뀐 종목은 "컨센 없음"입니다.</p>
+    <p>비고에 "잠정실적 기준"이 있는 종목은 분기보고서가 아직 없어 영업(잠정)실적 공시로 계산한 값이라 확정치와 다를 수 있습니다.</p>
+    <p>증가율은 비교 기준이 적자이면 계산하지 않고 —로 둡니다. 연결·별도 기준이 해마다 섞인 종목은 TTM 판정을 보류합니다.</p>
+  </section>
+</div>
+
+<script>
+const THR = { yoy: 0.2, qoq: 0.2, ttm: 0.15 };
+const eok = (v) => (v == null ? '—' : d3.format(',.0f')(v));
+const pct = (v) => (v == null ? '—' : (v >= 0 ? '+' : '−') + d3.format(',.0f')(Math.abs(v) * 100) + '%');
+
+dash.calc('scores', {
+  title: '증가율·통과 여부·컨센 대비',
+  description: '원자료로 YoY·QoQ·TTM 증가율과 기준 통과 여부, 컨센서스 대비 서프라이즈를 계산합니다.',
+  inputs: ['watch'],
+  fn: (watch) => watch.map((r) => {
+    const n = (v) => (v == null ? null : v);
+    const g = (a, b) => (a != null && b != null && b > 0 ? a / b - 1 : null);
+    const both = (x, y, t) => (x == null || y == null ? '—' : (x >= t && y >= t ? 'O' : 'X'));
+    const o = Object.assign({}, r);
+    ['rev', 'op', 'rev_py', 'op_py', 'rev_q2', 'op_q2', 'ttm_rev', 'ttm_rev_prev', 'ttm_op', 'ttm_op_prev', 'c_rev', 'c_op', 'mcap', 'src', 'fs', 'note'].forEach((k) => { o[k] = n(r[k]); });
+    o.rev_yoy = g(o.rev, o.rev_py); o.op_yoy = g(o.op, o.op_py);
+    o.rev_qoq = g(o.rev, o.rev_q2); o.op_qoq = g(o.op, o.op_q2);
+    o.ttm_rev_g = g(o.ttm_rev, o.ttm_rev_prev); o.ttm_op_g = g(o.ttm_op, o.ttm_op_prev);
+    o.yoy_ok = both(o.rev_yoy, o.op_yoy, 0.2);
+    o.qoq_ok = both(o.rev_qoq, o.op_qoq, 0.2);
+    o.ttm_ok = r.mixed ? '보류' : both(o.ttm_rev_g, o.ttm_op_g, 0.15);
+    o.rev_sur = o.c_rev != null && o.c_rev > 0 && o.rev != null ? o.rev / o.c_rev - 1 : null;
+    o.op_sur = o.c_op != null && o.c_op > 0 && o.op != null ? o.op / o.c_op - 1 : null;
+    if (r.status === '미발표') o.verdict = '미발표';
+    else if (o.c_rev == null || o.c_op == null) o.verdict = '컨센 없음';
+    else {
+      const a = o.rev >= o.c_rev, b = o.op >= o.c_op;
+      o.verdict = a && b ? '매출·영업 상회' : (b ? '영업만 상회' : (a ? '매출만 상회' : '하회'));
+    }
+    return o;
+  }),
+});
+
+dash.calc('summary', {
+  title: '구분별 집계',
+  description: '보유·관심·전체별로 발표 종목 수와 기준 통과 종목 수를 셉니다.',
+  inputs: ['scores'],
+  fn: (scores) => ['보유', '관심', '전체'].map((grp) => {
+    const L = scores.filter((r) => grp === '전체' || r.group === grp);
+    const c = (f) => L.filter(f).length;
+    return {
+      group: grp, total: L.length, released: c((r) => r.status === '발표'), pending: c((r) => r.status === '미발표'),
+      yoy: c((r) => r.yoy_ok === 'O'), qoq: c((r) => r.qoq_ok === 'O'), ttm: c((r) => r.ttm_ok === 'O'),
+      beat: c((r) => r.verdict === '매출·영업 상회'),
+    };
+  }),
+});
+
+dash.draw('take', (el) => {
+  const s = dash.data('summary');
+  const t = s.status === 'ok' ? s.data.find((r) => r.group === '전체') : null;
+  if (!t) { el.textContent = '—'; return; }
+  const b = (f) => {
+    const e = document.createElement('b');
+    e.textContent = t[f];
+    e.setAttribute('data-source', 'summary'); e.setAttribute('data-field', f); e.setAttribute('data-where', 'group=전체');
+    return e;
+  };
+  el.replaceChildren('3분기 실적을 낸 ', b('released'), '곳 중 TTM 기준을 통과한 곳은 ', b('ttm'), '곳, 컨센서스를 매출·영업이익 모두 웃돈 곳은 ', b('beat'), '곳입니다. 아직 발표하지 않은 종목은 ', b('pending'), '곳입니다.');
+});
+
+dash.draw('sumRows', (el) => {
+  const s = dash.data('summary');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const F = ['group', 'total', 'released', 'yoy', 'qoq', 'ttm', 'beat'];
+  d3.select(el).selectAll('tr').data(s.data, (d) => d.group).join('tr')
+    .attr('data-key', (d) => d.group)
+    .selectAll('td').data((d) => F.map((f) => d[f])).join('td').text((v) => v);
+});
+
+const flagCls = (v) => (v === 'O' ? 'pill ok' : (v === '보류' ? 'pill hold' : 'pill'));
+const verdictCls = (v) => (v === '매출·영업 상회' ? 'pill ok' : (v === '하회' ? 'pill bad' : (v === '영업만 상회' || v === '매출만 상회' ? 'pill hold' : 'pill')));
+const growthCls = (t) => (v) => (v == null ? '' : (v >= t ? 'pos' : (v < 0 ? 'neg' : '')));
+const COLS = [
+  { f: 'name', t: (r) => r.name },
+  { f: 'code', t: (r) => r.code, c: () => 'code' },
+  { f: 'mcap', t: (r) => eok(r.mcap) },
+  { f: 'yoy_ok', t: (r) => r.yoy_ok, pill: flagCls, g: 1 },
+  { f: 'qoq_ok', t: (r) => r.qoq_ok, pill: flagCls },
+  { f: 'ttm_ok', t: (r) => r.ttm_ok, pill: flagCls },
+  { f: 'verdict', t: (r) => r.verdict, pill: verdictCls },
+  { f: 'rev_yoy', t: (r) => pct(r.rev_yoy), c: (r) => growthCls(THR.yoy)(r.rev_yoy), g: 1 },
+  { f: 'op_yoy', t: (r) => pct(r.op_yoy), c: (r) => growthCls(THR.yoy)(r.op_yoy) },
+  { f: 'rev_qoq', t: (r) => pct(r.rev_qoq), c: (r) => growthCls(THR.qoq)(r.rev_qoq) },
+  { f: 'op_qoq', t: (r) => pct(r.op_qoq), c: (r) => growthCls(THR.qoq)(r.op_qoq) },
+  { f: 'ttm_rev_g', t: (r) => pct(r.ttm_rev_g), c: (r) => growthCls(THR.ttm)(r.ttm_rev_g), g: 1 },
+  { f: 'ttm_op_g', t: (r) => pct(r.ttm_op_g), c: (r) => growthCls(THR.ttm)(r.ttm_op_g) },
+  { f: 'rev_sur', t: (r) => pct(r.rev_sur), c: (r) => growthCls(0)(r.rev_sur), g: 1 },
+  { f: 'op_sur', t: (r) => pct(r.op_sur), c: (r) => growthCls(0)(r.op_sur) },
+  { f: 'note', t: (r) => r.note || '', c: () => 'txt', g: 1 },
+];
+function drawRows(el, group) {
+  const s = dash.data('scores');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const rows = s.data.filter((r) => r.group === group)
+    .sort((a, b) => (a.status === '미발표') - (b.status === '미발표') || (b.mcap || 0) - (a.mcap || 0));
+  d3.select(el).selectAll('tr').data(rows, (d) => d.code).join('tr')
+    .attr('data-key', (d) => d.code)
+    .selectAll('td').data((d) => COLS.map((c) => ({ c, d }))).join('td')
+    .attr('class', (x) => [x.c.g ? 'g' : '', x.c.c ? x.c.c(x.d) : ''].filter(Boolean).join(' '))
+    .each(function (x) {
+      const td = d3.select(this), text = x.c.t(x.d);
+      if (x.c.pill) td.text(null).append('span').attr('class', x.c.pill(text)).text(text);
+      else td.text(text);
+    });
+}
+dash.draw('holdRows', (el) => drawRows(el, '보유'));
+dash.draw('watchRows', (el) => drawRows(el, '관심'));
+
+dash.draw('surprise', (el) => {
+  const s = dash.data('scores');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const rows = s.data.filter((r) => r.op_sur != null).sort((a, b) => b.op_sur - a.op_sur);
+  const W = Math.max(el.clientWidth, 300), rowH = 28, top = 26, CAP = 1;
+  const labelW = Math.min(138, Math.round(W * 0.34)), pad = 50;
+  const H = top + rows.length * rowH + 6;
+  const x = d3.scaleLinear().domain([-CAP, CAP]).range([labelW + pad, W - pad]);
+  const svg = d3.create('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+    .attr('aria-label', '컨센서스 대비 영업이익 서프라이즈 막대 차트');
+  svg.append('g').selectAll('line').data([-1, -0.5, 0, 0.5, 1]).join('line')
+    .attr('x1', (d) => x(d)).attr('x2', (d) => x(d)).attr('y1', top - 6).attr('y2', H)
+    .style('stroke', (d) => (d === 0 ? 'var(--cds-chart-axis, var(--color-fg-muted))' : 'var(--cds-chart-grid, var(--color-border-line))'));
+  svg.append('g').selectAll('text').data([-1, -0.5, 0, 0.5, 1]).join('text').attr('class', 'mut')
+    .attr('x', (d) => x(d)).attr('y', 12).attr('text-anchor', 'middle').text((d) => (d === 0 ? '0%' : pct(d)));
+  const tip = d3.create('div').attr('class', 'wk-tip').style('display', 'none');
+  const g = svg.append('g').selectAll('g').data(rows).join('g').attr('transform', (d, i) => `translate(0,${top + i * rowH})`);
+  g.append('text').attr('x', 0).attr('y', rowH / 2 + 4).text((d) => d.name);
+  g.append('text').attr('class', 'mut').attr('x', labelW - 2).attr('y', rowH / 2 + 4).attr('text-anchor', 'end')
+    .text((d) => (d.group === '보유' ? '보유' : ''));
+  g.append('rect').attr('y', 5).attr('height', rowH - 10).attr('rx', 2)
+    .attr('x', (d) => x(Math.min(0, Math.max(-CAP, d.op_sur)))).attr('width', (d) => Math.abs(x(Math.max(-CAP, Math.min(CAP, d.op_sur))) - x(0)))
+    .style('fill', (d) => (d.op_sur >= 0 ? 'var(--color-ok)' : 'var(--color-bad)'));
+  g.append('text').attr('y', rowH / 2 + 4).text((d) => pct(d.op_sur)).each(function (d) {
+    const clipped = Math.abs(d.op_sur) > CAP, end = x(Math.max(-CAP, Math.min(CAP, d.op_sur)));
+    const el2 = d3.select(this);
+    if (clipped && d.op_sur < 0) el2.attr('x', x(0) + 6).attr('text-anchor', 'start');
+    else if (d.op_sur >= 0) el2.attr('x', end + 5).attr('text-anchor', 'start');
+    else el2.attr('x', end - 5).attr('text-anchor', 'end');
+  });
+  g.append('rect').attr('x', 0).attr('width', W).attr('height', rowH).style('fill', 'transparent')
+    .on('mousemove', function (ev, d) {
+      const box = el.getBoundingClientRect();
+      tip.style('display', 'block').html('').text(`${d.name} · 실제 ${eok(d.op)} · 컨센 ${eok(d.c_op)} · ${pct(d.op_sur)}`);
+      const tn = tip.node(), left = Math.min(Math.max(ev.clientX - box.left + 12, 0), Math.max(0, box.width - tn.offsetWidth));
+      tip.style('left', left + 'px').style('top', Math.max(0, ev.clientY - box.top - 34) + 'px');
+    })
+    .on('mouseleave', () => tip.style('display', 'none'));
+  el.replaceChildren(svg.node(), tip.node());
+});
+</script>

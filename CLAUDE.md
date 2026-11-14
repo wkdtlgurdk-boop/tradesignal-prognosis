@@ -127,3 +127,4 @@ python3 /root/.claude/skills/synced/*/xlsx/scripts/recalc.py OUT.xlsx 120     # 
 - `watch_check.py`는 `fin.py`를 import하지 않는다(`fin.py`는 import만 해도 이번 분기 중간 파일을 읽는다).
 - 검증: API로 받은 종목과 잠정 종목의 값을 공시 본문과 한두 개 대조한다(예: 잠정공시의 증감률). 연결/별도 혼합(`혼합`) 종목은 TTM 판정을 보류한다.
 - 보고: 종목별 YoY·QoQ·TTM 통과 여부와 컨센 대비, 보유/관심 구분, 미발표·잠정·혼합 같은 한계. 엑셀에는 `보유종목`, `관심종목` 시트와 요약이 들어간다.
+- **아티팩트:** 사용자가 보기 쉽게 보려면 비공개 Artifact 「관심·보유 종목 실적 점검」(Data 유형)을 쓴다. `Artifact list`로 제목을 찾아 갱신한다. 순서: `python3 $T/gen_watch_data.py watch_result.json watch.json` → Artifact publish(`asset:true`, `file_path=watch.json`)로 올림 → `datasets/watch` 문서의 `source.url`을 새 `/_blob/<id>`로, `updated`를 지금 시각으로 `update`(`edit: {via:"claude", at:<UTC>}` 포함). 페이지 코드는 `$T/watch_page.html`(`files/index.html` 문서의 `text`). 새로 만들 때는 Data 유형(`type_url`)으로 시작하고 `dash/meta`·`datasets/watch`·`files/index.html`을 `ArtifactData` batch로 쓴다. 공유(share)는 사용자가 요청할 때만 — 보유 내역이 들어 있다.
