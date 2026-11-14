@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+# 개인 보유·관심 종목 정보는 공개 저장소에 올리지 않는다
+watch*.json
+holdings_kis.json
+실적발표/*관심*
+실적발표/*보유*
