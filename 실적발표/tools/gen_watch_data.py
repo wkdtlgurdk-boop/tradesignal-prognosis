@@ -10,13 +10,13 @@ rows=[]
 for o in R:
     r=dict(name=o['name'],code=o['code'],group=o['group'],mcap=b(o.get('mcap')))
     if o.get('err'):
-        r.update(status='미발표',src=None,fs=None,note='당분기 분기보고서·잠정실적 공시 없음(마감일이 주말이면 월요일 제출 가능)');rows.append(r);continue
+        r.update(status='미발표',src=None,fs=None,note='당분기 분기보고서·잠정실적 공시 없음(마감일이 주말이면 월요일 제출 가능)'+('; '+o['tag'] if o.get('tag') else ''));rows.append(r);continue
     rv,op=o['rev'],o['op'];nb=[]
     if o['src']=='잠정': nb.append('잠정실적 기준')
     if o['src']=='원문': nb.append('보고서 원문 파싱')
     if o.get('mixed'): nb.append('연결·별도 기준 혼합(TTM 신뢰 낮음)')
     if o.get('cflag')=='N': nb.append('컨센서스가 실제 값으로 갱신됨')
-    if o['group']=='보유': nb.append('매매일지 기준 임시 목록')   # 한투 API 목록으로 바꾸면 이 줄을 지운다
+    if o.get('tag'): nb.append(o['tag'])   # watch.json 항목의 "tag"(예: 출처 표시)를 비고에 붙인다
     cons=o.get('cflag')=='Y' and o.get('c_rev') is not None and o.get('c_op') is not None
     r.update(status='발표',src=o['src'],fs='연결' if o['fs']=='CFS' else '별도',rcept_dt=f"{o['rcept_dt'][:4]}-{o['rcept_dt'][4:6]}-{o['rcept_dt'][6:]}",
       rev=b(rv['q3']),rev_py=b(rv['py']),rev_q2=b(rv['q2']),op=b(op['q3']),op_py=b(op['py']),op_q2=b(op['q2']),
