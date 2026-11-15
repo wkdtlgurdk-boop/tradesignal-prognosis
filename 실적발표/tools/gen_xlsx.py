@@ -135,6 +135,62 @@ if CS:
     cons_sheet('컨센대비(86)_반도체제외',[x for x in CR if x['d']['semi']!='반도체'])
     cons_sheet('컨센대비(TTM49)',[x for x in CR if x['ttm']])
     cons_sheet('컨센대비(TTM49)_반도체제외',[x for x in CR if x['ttm'] and x['d']['semi']!='반도체'])
+# ── 종합 순위: YoY·QoQ·TTM 각 지표(매출·영업이익 증가율 중 낮은 쪽) 순위 → 1등 N점 … N등 1점, 계산 불가 0점 → 합계로 종합 순위
+RK={r['code']:r for r in R}
+def rank_rows(data):
+    g=lambda a,c:(a/c-1) if (a is not None and c is not None and c>0) else None
+    mn=lambda x,y:min(x,y) if (x is not None and y is not None) else None
+    out=[]
+    for d in data:
+        t=RK.get(d['code'])
+        v=dict(d=d,rev=b(d['rev']),rev_py=b(d['rev_py']),rev_q2=b(d['rev_q2']),op=b(d['op']),op_py=b(d['op_py']),op_q2=b(d['op_q2']),
+               trc=b(t['rev']['cur']) if t else None,trp=b(t['rev']['prv']) if t else None,toc=b(t['op']['cur']) if t else None,top=b(t['op']['prv']) if t else None)
+        v['m_yoy']=mn(g(v['rev'],v['rev_py']),g(v['op'],v['op_py']));v['m_qoq']=mn(g(v['rev'],v['rev_q2']),g(v['op'],v['op_q2']))
+        v['m_ttm']=mn(g(v['trc'],v['trp']),g(v['toc'],v['top']))
+        out.append(v)
+    N=len(out)
+    for k in('yoy','qoq','ttm'):
+        for v in out:
+            m=v['m_'+k];v['p_'+k]=0 if m is None else N-sum(1 for w in out if w['m_'+k] is not None and w['m_'+k]>m)
+    for v in out: v['tot']=v['p_yoy']+v['p_qoq']+v['p_ttm']
+    out.sort(key=lambda v:(-v['tot'],-(v['d']['mcap'] or 0)))
+    return out
+def rank_sheet(name,data):
+    ws=wb.create_sheet(name);rows=rank_rows(data);n=len(rows)+1
+    header(ws,['종합 순위','종목','코드','시총(억)','반도체 분류','종합 점수','YoY 점수','QoQ 점수','TTM 점수','YoY 지표','QoQ 지표','TTM 지표',
+               '매출 YoY','영업이익 YoY','매출 QoQ','영업이익 QoQ','매출 TTM','영업이익 TTM',
+               '매출(억)','전년동기 매출','전분기 매출','영업이익(억)','전년동기 영업이익','전분기 영업이익','TTM 매출','직전 TTM 매출','TTM 영업이익','직전 TTM 영업이익'])
+    rng=lambda c:f"{c}$2:{c}${n}"
+    for i,v in enumerate(rows,2):
+        d=v['d']
+        for j,x in enumerate([None,d['name'],d['code'],b(d['mcap']),d['semi'] or None],1):
+            if x is not None: ws.cell(i,j,x)
+        for j,x in enumerate([v['rev'],v['rev_py'],v['rev_q2'],v['op'],v['op_py'],v['op_q2'],v['trc'],v['trp'],v['toc'],v['top']],19):
+            if x is not None: ws.cell(i,j,x)
+        gr=lambda cur,base:f'=IF(N({base}{i})>0,{cur}{i}/{base}{i}-1,"n/a")'
+        ws.cell(i,13,gr('S','T'));ws.cell(i,14,gr('V','W'));ws.cell(i,15,gr('S','U'));ws.cell(i,16,gr('V','X'))
+        ws.cell(i,17,gr('Y','Z'));ws.cell(i,18,gr('AA','AB'))
+        mn=lambda a,c:f'=IF(AND(ISNUMBER({a}{i}),ISNUMBER({c}{i})),MIN({a}{i},{c}{i}),"n/a")'
+        ws.cell(i,10,mn('M','N'));ws.cell(i,11,mn('O','P'));ws.cell(i,12,mn('Q','R'))
+        pt=lambda c:f'=IF(ISNUMBER({c}{i}),COUNTA({rng("B")})-RANK({c}{i},{rng(c)},0)+1,0)'
+        ws.cell(i,7,pt('J'));ws.cell(i,8,pt('K'));ws.cell(i,9,pt('L'))
+        ws.cell(i,6,f'=G{i}+H{i}+I{i}');ws.cell(i,1,f'=RANK(F{i},{rng("F")},0)')
+        for j in range(1,29):
+            c=ws.cell(i,j);c.font=font();c.border=BD
+            if j in(4,19,20,21,22,23,24,25,26,27,28):c.number_format='#,##0;(#,##0);-'
+            if 10<=j<=18:c.number_format='0%;-0%;0%';c.alignment=Alignment(horizontal='right')
+            if j in(1,5,6,7,8,9):c.alignment=Alignment(horizontal='center')
+        ws.cell(i,6).font=font(bold=True)
+        if d['both']: ws.cell(i,2).fill=GRN
+    for j,w in enumerate([8,20,9,10,10,9,8,8,8,9,9,9,9,10,9,10,9,10,10,11,11,11,11,11,11,11,11,11],1): ws.column_dimensions[L(j)].width=w
+    ws.freeze_panes='C2';ws.auto_filter.ref=f"A1:AB{n}"
+    notes=['점수: YoY·QoQ·TTM마다 "매출 증가율과 영업이익 증가율 중 낮은 쪽"을 지표로 순위를 매겨 1등 N점 … N등 1점(N = 이 시트 종목 수). 비교 기준이 적자이거나 TTM 비교 불가면 그 항목 0점.',
+           '종합 점수 = YoY + QoQ + TTM 점수. 행 순서는 작성 시점의 종합 점수 순(같은 점수는 시총 순). 증가율·지표·점수·순위는 모두 수식.']
+    for k,t in enumerate(notes): ws.cell(n+2+k,1,t).font=font(italic=True)
+    return rows
+RANK_BASE=[d for d in rows if d['yoy'] or d['qoq']]
+RANK_ALL=rank_sheet('종합순위(86)',RANK_BASE)
+RANK_X=rank_sheet('종합순위(86)_반도체제외',[d for d in RANK_BASE if d['semi']!='반도체'])
 # 요약 표 (전체 / 반도체 제외 / 반도체·경계 제외)
 hdr=['구분','전체','반도체 제외','반도체·경계 제외']
 for k,h in enumerate(hdr):

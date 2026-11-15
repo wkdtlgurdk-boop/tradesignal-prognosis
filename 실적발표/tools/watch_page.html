@@ -32,6 +32,10 @@
 .wk-tip{position:absolute;pointer-events:none;background:var(--cds-surface-popover,var(--color-panel));border:1px solid var(--cds-border,var(--color-border-line));box-shadow:var(--cds-shadow-popover,0 2px 8px rgba(0,0,0,.15));border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.5;color:var(--cds-text-secondary,var(--color-fg));white-space:nowrap;z-index:5}
 .wk-foot{display:flex;flex-direction:column;gap:6px;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);line-height:1.6;max-width:72ch}
 .wk-foot p{margin:0}
+.wk-sub{margin:var(--cds-gap-sm,8px) 0 0;font-size:var(--cds-font-size-body,15px);font-weight:var(--cds-font-weight-medium,600)}
+.wk-rank td.tot{font-weight:var(--cds-font-weight-medium,600);font-size:13px}
+.wk-rank td.rk{font-family:var(--font-anthropic-serif);font-size:15px}
+.wk-rank tr.top td:first-child{color:var(--color-ok)}
 [data-dash-source-state=refreshing]{opacity:.5}
 @media (max-width:560px){.wk-title{font-size:22px}}
 </style>
@@ -55,6 +59,25 @@
       </table>
     </div>
     <p class="wk-note">통과 기준: 매출·영업이익이 둘 다 YoY·QoQ +20% 이상, TTM(최근 4분기 합산) +15% 이상. 컨센 상회는 매출·영업이익이 모두 컨센서스 이상일 때입니다.</p>
+  </section>
+
+  <section class="wk-sec" id="ranking">
+    <h2>종합 순위</h2>
+    <p class="wk-note">YoY·QoQ·TTM마다 매출 증가율과 영업이익 증가율 중 낮은 쪽을 지표로 순위를 매겨 1등은 N점, 꼴찌는 1점을 줍니다(N은 구분별 종목 수). 비교 기준이 적자이거나 미발표·기준 혼합이면 그 항목은 0점입니다. 세 점수를 더한 종합 점수로 순위를 매겼고, 보유와 관심은 따로 매깁니다.</p>
+    <h3 class="wk-sub" id="rank-hold">보유</h3>
+    <div class="wk-scroll">
+      <table class="wk-table wk-rank" data-source="ranks" data-row-key="code">
+        <thead><tr><th data-field="name">종목</th><th data-field="rank">순위</th><th data-field="total">종합 점수</th><th class="g" data-field="yoy_pt">YoY 점수</th><th data-field="qoq_pt">QoQ 점수</th><th data-field="ttm_pt">TTM 점수</th><th class="g" data-field="yoy_m">YoY 지표</th><th data-field="qoq_m">QoQ 지표</th><th data-field="ttm_m">TTM 지표</th></tr></thead>
+        <tbody data-draw="rankHold"></tbody>
+      </table>
+    </div>
+    <h3 class="wk-sub" id="rank-watch">관심</h3>
+    <div class="wk-scroll">
+      <table class="wk-table wk-rank" data-source="ranks" data-row-key="code">
+        <thead><tr><th data-field="name">종목</th><th data-field="rank">순위</th><th data-field="total">종합 점수</th><th class="g" data-field="yoy_pt">YoY 점수</th><th data-field="qoq_pt">QoQ 점수</th><th data-field="ttm_pt">TTM 점수</th><th class="g" data-field="yoy_m">YoY 지표</th><th data-field="qoq_m">QoQ 지표</th><th data-field="ttm_m">TTM 지표</th></tr></thead>
+        <tbody data-draw="rankWatch"></tbody>
+      </table>
+    </div>
   </section>
 
   <section class="wk-sec" id="holdings">
@@ -151,6 +174,54 @@ dash.calc('summary', {
     };
   }),
 });
+
+dash.calc('ranks', {
+  title: '종합 순위',
+  description: 'YoY·QoQ·TTM 지표(매출·영업이익 증가율 중 낮은 쪽) 순위 점수(1등 N점 … 꼴찌 1점, 계산 불가 0점)와 합계. 보유·관심을 따로 매깁니다.',
+  inputs: ['scores'],
+  fn: (scores) => {
+    const mn = (a, b) => (a == null || b == null ? null : Math.min(a, b));
+    const out = [];
+    ['보유', '관심'].forEach((grp) => {
+      const L = scores.filter((r) => r.group === grp).map((r) => ({
+        code: r.code, name: r.name, group: grp, mcap: r.mcap,
+        yoy_m: mn(r.rev_yoy, r.op_yoy), qoq_m: mn(r.rev_qoq, r.op_qoq),
+        ttm_m: r.ttm_ok === '보류' ? null : mn(r.ttm_rev_g, r.ttm_op_g),
+      }));
+      const N = L.length;
+      ['yoy', 'qoq', 'ttm'].forEach((k) => L.forEach((x) => {
+        const m = x[k + '_m'];
+        x[k + '_pt'] = m == null ? 0 : N - L.filter((y) => y[k + '_m'] != null && y[k + '_m'] > m).length;
+      }));
+      L.forEach((x) => { x.total = x.yoy_pt + x.qoq_pt + x.ttm_pt; });
+      L.forEach((x) => { x.rank = 1 + L.filter((y) => y.total > x.total).length; });
+      L.sort((a, b) => a.rank - b.rank || (b.mcap || 0) - (a.mcap || 0));
+      out.push(...L);
+    });
+    return out;
+  },
+});
+
+function drawRank(el, group) {
+  const s = dash.data('ranks');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const rows = s.data.filter((r) => r.group === group);
+  const C = [
+    { t: (r) => r.name }, { t: (r) => r.rank, c: 'rk' }, { t: (r) => r.total, c: 'tot' },
+    { t: (r) => r.yoy_pt, c: 'g' }, { t: (r) => r.qoq_pt }, { t: (r) => r.ttm_pt },
+    { t: (r) => pct(r.yoy_m), c: 'g', v: (r) => r.yoy_m }, { t: (r) => pct(r.qoq_m), v: (r) => r.qoq_m }, { t: (r) => pct(r.ttm_m), v: (r) => r.ttm_m },
+  ];
+  d3.select(el).selectAll('tr').data(rows, (d) => d.code).join('tr')
+    .attr('data-key', (d) => d.code).attr('class', (d) => (d.rank <= 3 ? 'top' : null))
+    .selectAll('td').data((d) => C.map((c) => ({ c, d }))).join('td')
+    .attr('class', (x) => {
+      const v = x.c.v ? x.c.v(x.d) : null;
+      return [x.c.c || '', v == null ? '' : (v < 0 ? 'neg' : '')].filter(Boolean).join(' ');
+    })
+    .text((x) => x.c.t(x.d));
+}
+dash.draw('rankHold', (el) => drawRank(el, '보유'));
+dash.draw('rankWatch', (el) => drawRank(el, '관심'));
 
 dash.draw('take', (el) => {
   const s = dash.data('summary');
