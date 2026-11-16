@@ -222,7 +222,7 @@ def tcount(m,tags):
         c+=(f",{T}!M2:M{n},\"<>반도체\"" if m==1 else (f",{T}!M2:M{n},\"\"" if m==2 else ""))+")"
         parts.append(c)
     return "="+"+".join(parts)
-for r,lab,tags in((15,'TTM·YoY 모두 해당 (= TTM 통과와 동일, QoQ만 해당한 종목은 TTM 탈락)',['둘다','YoY']),(16,'TTM·YoY·QoQ 모두 해당',['둘다']),(17,'TTM·YoY만 해당 (QoQ 제외)',['YoY'])):
+for r,lab,tags in((15,'TTM·YoY 모두 해당 (TTM 통과 중 QoQ만 해당한 종목은 제외)',['둘다','YoY']),(16,'TTM·YoY·QoQ 모두 해당',['둘다']),(17,'TTM·YoY만 해당 (QoQ 제외)',['YoY'])):
     ws0.cell(r,2,lab).font=font();ws0.cell(r,2).border=BD
     for m in range(3):
         c=ws0.cell(r,3+m,tcount(m,tags));c.font=font(bold=True);c.alignment=Alignment(horizontal='center');c.border=BD
