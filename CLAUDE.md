@@ -103,6 +103,18 @@ python3 /root/.claude/skills/synced/*/xlsx/scripts/recalc.py OUT/YYYY-NQ_실적�
 - 최종 보고는 짧게: 요약 숫자(대상·YoY·QoQ·둘다·TTM 통과, 전체 vs 반도체 제외), 대표 종목, 한계(원문 파싱·제외 종목·월요일 제출분). 목록 전체는 파일을 보라고 한다.
 - 절차나 파라미터를 고쳤으면 이 파일(CLAUDE.md)과 `실적발표/README.md`를 같이 갱신한다.
 
+## 8. 다섯 기준 평가·PER 필터 (요청이 있을 때)
+
+"오늘 접수분 기준대로 정리", "PER 20 이하만 정렬" 같은 요청에 쓴다. 다섯 기준 = YoY·QoQ·TTM·컨센서스(매출·영업이익 모두 상회)·차트(종가가 20일 고가 대비 −5% 이내).
+```bash
+python3 $T/chart_day.py      # analysis.json 의 YoY|QoQ 해당 종목 차트 위치 -> chart_all.json (권리락 ±30% 이전 시세는 버림)
+python3 $T/eval_day.py       # 다섯 기준 통과 개수·종합 점수 -> eval_day.json (ksic.json, ttm_final.json, cons.json 필요)
+python3 $T/per_fetch.py      # 네이버 PER·추정PER·PBR -> per_all.json (day1116/eval_day.json 경로는 날짜에 맞게 수정)
+```
+- PER은 네이버 값이라 대부분 직전 확정 기준(예: 3분기 직후에도 2026.06 기준)이므로 "PER 기준" 열로 시점을 같이 보여주고, 현재 PER이 20을 넘어도 추정 PER이 20 이하인 종목은 따로 언급한다. 적자(PER 없음)는 필터에서 뺀다.
+- 결과를 보기 쉽게 정리하라는 요청에는 Data 유형 아티팩트 「저PER 실적 상위」를 쓴다. 데이터 파일 `stocks.json`({rows, meta})을 올리고 페이지는 `$T/per_page.html`(`files/index.html` 문서의 `text`). 점수는 접수분 풀 안에서 매긴다(필터 전 전체 풀 기준).
+- 이 목록은 시장 전체 종목이라 공개해도 되지만, 보유·관심 표시나 수량은 넣지 않는다.
+
 ---
 
 # 관심·보유 종목 실적 점검 (개인 정보)

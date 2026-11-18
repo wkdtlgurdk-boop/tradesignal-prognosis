@@ -1,0 +1,292 @@
+<meta name="dash-one-writer">
+<style>
+/* 레이아웃: 제목+한 줄 요약 → 접수분별 집계표 → 필터 버튼 → 정렬 표(첫 열 고정, 가로 스크롤) → PER 대 종합 점수 산점도 → 읽는 법 */
+.pe{display:flex;flex-direction:column;gap:var(--cds-gap-xl,32px);font-family:var(--font-anthropic-sans);color:var(--color-fg);min-width:0}
+.pe-title{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title,26px);margin:0 0 4px;line-height:1.2;text-wrap:balance}
+.pe-meta{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px)}
+.pe-take{margin:var(--cds-gap-md,12px) 0 0;font-size:var(--cds-font-size-body,15px);line-height:1.6;max-width:62ch}
+.pe-take b{font-variant-numeric:tabular-nums;font-weight:var(--cds-font-weight-medium,600)}
+.pe-sec{display:flex;flex-direction:column;gap:var(--cds-gap-sm,8px);min-width:0}
+.pe-sec h2{margin:0;font-size:var(--cds-font-size-heading,18px);font-weight:var(--cds-font-weight-medium,600)}
+.pe-note{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);line-height:1.6;max-width:72ch}
+.pe-ctl{display:flex;flex-wrap:wrap;gap:var(--cds-gap-md,12px) var(--cds-gap-lg,20px)}
+.pe-grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pe-grp>span{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);margin-right:2px}
+.pe-btn{font:inherit;font-size:12.5px;padding:4px 11px;border-radius:999px;border:1px solid var(--color-border-line);background:var(--color-panel);color:var(--color-fg);cursor:pointer}
+.pe-btn:hover{border-color:var(--color-fg-muted)}
+.pe-btn:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px}
+.pe-btn[aria-pressed=true]{background:var(--color-fg);color:var(--color-bg);border-color:var(--color-fg)}
+.pe-scroll{overflow-x:auto;border:1px solid var(--color-border-line);border-radius:var(--cds-radius,8px);background:var(--color-panel)}
+.pe-table{border-collapse:separate;border-spacing:0;width:100%;font-size:var(--cds-font-size-caption,12.5px);font-variant-numeric:tabular-nums}
+.pe-table th,.pe-table td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--color-border-line)}
+.pe-table thead th{color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium,500);font-size:11.5px;background:var(--color-panel)}
+.pe-table tbody tr:last-child td{border-bottom:0}
+.pe-table th.l,.pe-table td.l{text-align:left}
+.pe-main th:nth-child(2),.pe-main td:nth-child(2){text-align:left;position:sticky;left:0;background:var(--color-panel);z-index:1;font-weight:var(--cds-font-weight-medium,600)}
+.pe-table .g{border-left:1px solid var(--color-border-line)}
+.pe-table td.rk{color:var(--color-fg-muted);text-align:center}
+.pe-table td.muted{color:var(--color-fg-muted)}
+.pe-table td.empty{text-align:center;color:var(--color-fg-muted);padding:20px}
+.pos{color:var(--color-ok);font-weight:var(--cds-font-weight-medium,600)}
+.neg{color:var(--color-bad)}
+.pill{display:inline-block;min-width:30px;text-align:center;padding:1px 8px;border-radius:999px;font-size:11.5px;border:1px solid var(--color-border-line);color:var(--color-fg-muted)}
+.pill.ok{color:var(--color-ok);border-color:var(--color-ok);font-weight:var(--cds-font-weight-medium,600)}
+.pill.hold{color:var(--color-warn);border-color:var(--color-warn)}
+.pill.bad{color:var(--color-bad);border-color:var(--color-bad)}
+.pe-chart{position:relative;min-height:240px}
+.pe-chart svg{display:block;width:100%;height:auto}
+.pe-chart text{font-family:var(--font-anthropic-sans);font-size:11.5px;fill:var(--color-fg)}
+.pe-chart .mut{fill:var(--cds-text-secondary,var(--color-fg-muted))}
+.pe-tip{position:absolute;pointer-events:none;background:var(--cds-surface-popover,var(--color-panel));border:1px solid var(--cds-border,var(--color-border-line));box-shadow:var(--cds-shadow-popover,0 2px 8px rgba(0,0,0,.15));border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.5;color:var(--cds-text-secondary,var(--color-fg));white-space:nowrap;z-index:5}
+.pe-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--color-fg-muted)}
+.pe-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.pe-legend .a{background:var(--color-ok)}.pe-legend .b{background:var(--color-warn)}.pe-legend .c{background:var(--cds-chart-muted,var(--color-fg-muted))}
+.pe-foot{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption,12px);line-height:1.6;max-width:72ch}
+.pe-foot summary{cursor:pointer}
+.pe-foot ul{margin:8px 0 0;padding-left:18px}
+.pe-foot li{margin:3px 0}
+[data-dash-source-state=refreshing]{opacity:.5}
+@media (max-width:560px){.pe-title{font-size:22px}}
+</style>
+
+<div class="pe">
+  <header>
+    <h1 class="pe-title" id="top">저PER 실적 상위</h1>
+    <p class="pe-meta">PER 20 이하 · 3분기 실적 다섯 기준 통과순 · 점검일 11/18 · 금액 단위 억원</p>
+    <p class="pe-take" data-draw="take">—</p>
+  </header>
+
+  <section class="pe-sec" id="summary">
+    <h2>접수분별 집계</h2>
+    <div class="pe-scroll">
+      <table class="pe-table" data-source="summary" data-row-key="grp">
+        <thead><tr>
+          <th class="l" data-field="grp">접수분</th><th data-field="total">분석 종목</th><th data-field="perok">PER 20 이하</th>
+          <th data-field="p4">4개 이상 통과</th><th data-field="p3">3개 이상 통과</th>
+        </tr></thead>
+        <tbody data-draw="sumRows"></tbody>
+      </table>
+    </div>
+    <p class="pe-note">분석 종목은 시총 2,000억원 이상 중 3분기 YoY 또는 QoQ 기준을 통과한 종목입니다(11/9~13 접수분에는 관심종목 일부 포함). 두 접수분에 모두 있는 종목은 11/16 확정치만 씁니다.</p>
+  </section>
+
+  <section class="pe-sec" id="ranking">
+    <h2>PER 20 이하 정렬표</h2>
+    <div class="pe-ctl">
+      <div class="pe-grp" role="group" aria-label="접수분"><span>접수분</span>
+        <button type="button" class="pe-btn" data-ctl="set" data-val="all" aria-pressed="true">전체</button>
+        <button type="button" class="pe-btn" data-ctl="set" data-val="11/16 접수" aria-pressed="false">11/16 접수</button>
+        <button type="button" class="pe-btn" data-ctl="set" data-val="11/9~13 접수" aria-pressed="false">11/9~13 접수</button>
+      </div>
+      <div class="pe-grp" role="group" aria-label="반도체"><span>반도체</span>
+        <button type="button" class="pe-btn" data-ctl="semi" data-val="incl" aria-pressed="true">포함</button>
+        <button type="button" class="pe-btn" data-ctl="semi" data-val="excl" aria-pressed="false">제외</button>
+      </div>
+      <div class="pe-grp" role="group" aria-label="정렬"><span>정렬</span>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="score" aria-pressed="true">통과·종합 점수순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="per" aria-pressed="false">PER 낮은 순</button>
+      </div>
+    </div>
+    <div class="pe-scroll">
+      <table class="pe-table pe-main" data-source="scored" data-row-key="code">
+        <thead><tr>
+          <th>순위</th><th data-field="name">종목</th><th data-field="set">접수분</th><th data-field="semi">반도체</th><th data-field="mcap">시총</th>
+          <th class="g" data-field="per">PER</th><th data-field="per_period">PER 기준</th><th data-field="cns_per">추정 PER</th><th data-field="pbr">PBR</th>
+          <th class="g" data-field="passes">통과</th><th data-field="tot">종합 점수</th>
+          <th class="g" data-field="m_yoy">YoY</th><th data-field="m_qoq">QoQ</th><th data-field="m_ttm">TTM</th><th data-field="cons_ok">컨센</th><th data-field="d_hi">차트</th>
+        </tr></thead>
+        <tbody data-draw="rows"></tbody>
+      </table>
+    </div>
+    <p class="pe-note">통과는 다섯 기준(YoY·QoQ·TTM·컨센서스·차트) 중 몇 개를 넘었는지입니다. YoY·QoQ·TTM은 매출과 영업이익 증가율 중 낮은 쪽이고 초록색이면 기준 통과입니다. 종합 점수는 접수분 안에서 YoY·QoQ·TTM 순위를 1등 N점, 꼴찌 1점으로 매겨 더한 값입니다.</p>
+  </section>
+
+  <section class="pe-sec" id="scatter">
+    <h2>PER과 종합 점수</h2>
+    <p class="pe-note">왼쪽 위에 있을수록 PER이 낮고 성장 점수가 높습니다. 위 표에서 고른 접수분·반도체 조건이 그대로 적용됩니다.</p>
+    <div class="pe-legend"><span><i class="a"></i>4개 이상 통과</span><span><i class="b"></i>3개 통과</span><span><i class="c"></i>2개 이하</span></div>
+    <div class="pe-chart" data-draw="scatter" data-source="scored"></div>
+  </section>
+
+  <section class="pe-foot" id="caveats">
+    <p>PER은 네이버증권 값이고 대부분 2026.06 또는 2025.12까지의 실적 기준입니다. 3분기 실적이 반영되기 전이라, 성장이 큰 종목은 3분기 반영 후 PER이 더 낮아질 수 있습니다. 추정 PER이 없는 종목은 —로 둡니다. 적자라 PER이 없는 종목은 목록에서 빠집니다.</p>
+    <details>
+      <summary>다섯 기준</summary>
+      <ul>
+        <li>YoY: 매출·영업이익이 모두 전년 동기 대비 +20% 이상</li>
+        <li>QoQ: 매출·영업이익이 모두 직전 분기 대비 +20% 이상</li>
+        <li>TTM: 최근 4분기 합산 매출·영업이익이 모두 직전 TTM 대비 +15% 이상</li>
+        <li>컨센: 매출·영업이익이 모두 컨센서스(네이버증권, 조회 시점) 이상</li>
+        <li>차트: 종가가 최근 20거래일 고가 대비 −5% 이내(권리락 이전 시세는 제외)</li>
+      </ul>
+    </details>
+  </section>
+</div>
+
+<script>
+const THR = { yoy: 0.2, qoq: 0.2, ttm: 0.15, chart: -0.05, per: 20 };
+const view = { set: 'all', semi: 'incl', sort: 'score' };
+const f0 = d3.format(',.0f'), f1 = d3.format('.1f'), f2 = d3.format('.2f');
+const pct = (v) => (v == null ? '—' : (v >= 0 ? '+' : '−') + f0(Math.abs(v) * 100) + '%');
+const num1 = (v) => (v == null ? '—' : f1(v));
+
+dash.calc('scored', {
+  title: '다섯 기준 통과·종합 점수',
+  description: '접수분별로 YoY·QoQ·TTM 지표 순위 점수(1등 N점 … 꼴찌 1점, 계산 불가 0점)와 다섯 기준 통과 개수를 계산합니다.',
+  inputs: ['stocks'],
+  fn: (stocks) => {
+    const out = [];
+    [...new Set(stocks.map((r) => r.set))].forEach((setName) => {
+      const L = stocks.filter((r) => r.set === setName).map((r) => {
+        const ok = (v, t) => (v == null ? '—' : (v >= t ? 'O' : 'X'));
+        const o = {
+          code: r.code, name: r.name, set: r.set, mcap: r.mcap, semi: r.semi == null ? '' : r.semi,
+          per: r.per, per_period: r.per_period == null ? '' : r.per_period, cns_per: r.cns_per, pbr: r.pbr,
+          m_yoy: r.m_yoy, m_qoq: r.m_qoq, m_ttm: r.m_ttm, d_hi: r.d_hi,
+        };
+        o.yoy_ok = ok(r.m_yoy, 0.2); o.qoq_ok = ok(r.m_qoq, 0.2); o.ttm_ok = ok(r.m_ttm, 0.15); o.chart_ok = ok(r.d_hi, -0.05);
+        o.cons_ok = r.cons === true ? 'O' : (r.cons === false ? 'X' : '—');
+        o.passes = [o.yoy_ok, o.qoq_ok, o.ttm_ok, o.cons_ok, o.chart_ok].filter((x) => x === 'O').length;
+        o.per_ok = r.per != null && r.per > 0 && r.per <= 20;
+        return o;
+      });
+      const N = L.length;
+      ['yoy', 'qoq', 'ttm'].forEach((k) => L.forEach((x) => {
+        const m = x['m_' + k];
+        x['p_' + k] = m == null ? 0 : N - L.filter((y) => y['m_' + k] != null && y['m_' + k] > m).length;
+      }));
+      L.forEach((x) => { x.tot = x.p_yoy + x.p_qoq + x.p_ttm; });
+      out.push(...L);
+    });
+    return out;
+  },
+});
+
+dash.calc('summary', {
+  title: '접수분별 집계',
+  description: '접수분별 분석 종목 수, PER 20 이하 종목 수, 그중 4개·3개 이상 통과한 종목 수를 셉니다.',
+  inputs: ['scored'],
+  fn: (scored) => ['전체', '11/16 접수', '11/9~13 접수'].map((grp) => {
+    const L = scored.filter((r) => grp === '전체' || r.set === grp);
+    const P = L.filter((r) => r.per_ok);
+    return { grp, total: L.length, perok: P.length, p4: P.filter((r) => r.passes >= 4).length, p3: P.filter((r) => r.passes >= 3).length };
+  }),
+});
+
+const pick = (rows) => rows.filter((r) => r.per_ok && (view.set === 'all' || r.set === view.set) && (view.semi === 'incl' || r.semi !== '반도체'));
+const order = (rows) => rows.slice().sort(view.sort === 'per'
+  ? (a, b) => a.per - b.per || b.passes - a.passes
+  : (a, b) => b.passes - a.passes || b.tot - a.tot || a.per - b.per);
+
+document.querySelectorAll('[data-ctl]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    view[btn.getAttribute('data-ctl')] = btn.getAttribute('data-val');
+    document.querySelectorAll('[data-ctl="' + btn.getAttribute('data-ctl') + '"]').forEach((x) => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
+    dash.draw('rows'); dash.draw('scatter');
+  });
+});
+
+dash.draw('take', (el) => {
+  const s = dash.data('summary');
+  const t = s.status === 'ok' ? s.data.find((r) => r.grp === '전체') : null;
+  if (!t) { el.textContent = '—'; return; }
+  const b = (f) => {
+    const e = document.createElement('b');
+    e.textContent = t[f];
+    e.setAttribute('data-source', 'summary'); e.setAttribute('data-field', f); e.setAttribute('data-where', 'grp=전체');
+    return e;
+  };
+  el.replaceChildren('분석한 ', b('total'), '곳 중 PER 20 이하는 ', b('perok'), '곳이고, 이 가운데 다섯 기준 중 4개 이상을 통과한 종목은 ', b('p4'), '곳, 3개 이상은 ', b('p3'), '곳입니다.');
+});
+
+dash.draw('sumRows', (el) => {
+  const s = dash.data('summary');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const F = ['grp', 'total', 'perok', 'p4', 'p3'];
+  d3.select(el).selectAll('tr').data(s.data, (d) => d.grp).join('tr')
+    .attr('data-key', (d) => d.grp)
+    .selectAll('td').data((d) => F.map((f) => d[f])).join('td')
+    .attr('class', (v, i) => (i === 0 ? 'l' : null)).text((v) => v);
+});
+
+const passCls = (v) => (v >= 4 ? 'pill ok' : (v === 3 ? 'pill hold' : 'pill'));
+const flagCls = (v) => (v === 'O' ? 'pill ok' : 'pill');
+const gCls = (t) => (v) => (v == null ? '' : (v >= t ? 'pos' : (v < 0 ? 'neg' : '')));
+const COLS = [
+  { f: 'rank', t: (r, i) => i + 1, c: () => 'rk' },
+  { f: 'name', t: (r) => r.name },
+  { f: 'set', t: (r) => r.set, c: () => 'muted' },
+  { f: 'semi', t: (r) => r.semi, c: () => 'muted' },
+  { f: 'mcap', t: (r) => f0(r.mcap) },
+  { f: 'per', t: (r) => num1(r.per), g: 1 },
+  { f: 'per_period', t: (r) => (r.per_period ? r.per_period.replace(/^20/, '') : ''), c: () => 'muted' },
+  { f: 'cns_per', t: (r) => num1(r.cns_per) },
+  { f: 'pbr', t: (r) => (r.pbr == null ? '—' : f2(r.pbr)) },
+  { f: 'passes', t: (r) => r.passes, pill: (r) => passCls(r.passes), g: 1 },
+  { f: 'tot', t: (r) => r.tot },
+  { f: 'm_yoy', t: (r) => pct(r.m_yoy), c: (r) => gCls(THR.yoy)(r.m_yoy), g: 1 },
+  { f: 'm_qoq', t: (r) => pct(r.m_qoq), c: (r) => gCls(THR.qoq)(r.m_qoq) },
+  { f: 'm_ttm', t: (r) => pct(r.m_ttm), c: (r) => gCls(THR.ttm)(r.m_ttm) },
+  { f: 'cons_ok', t: (r) => r.cons_ok, pill: (r) => flagCls(r.cons_ok) },
+  { f: 'd_hi', t: (r) => pct(r.d_hi), c: (r) => gCls(THR.chart)(r.d_hi) },
+];
+dash.draw('rows', (el) => {
+  const s = dash.data('scored');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const rows = order(pick(s.data));
+  if (!rows.length) {
+    d3.select(el).selectAll('tr').data([0]).join('tr').selectAll('td').data([0]).join('td').attr('colspan', COLS.length).attr('class', 'empty').text('조건에 맞는 종목이 없습니다.');
+    return;
+  }
+  d3.select(el).selectAll('tr').data(rows, (d) => d.code).join('tr')
+    .attr('data-key', (d) => d.code)
+    .selectAll('td').data((d, i) => COLS.map((c) => ({ c, d, i }))).join('td')
+    .attr('class', (x) => [x.c.g ? 'g' : '', x.c.c ? x.c.c(x.d) : ''].filter(Boolean).join(' '))
+    .each(function (x) {
+      const td = d3.select(this), text = x.c.t(x.d, x.i);
+      if (x.c.pill) td.text(null).append('span').attr('class', x.c.pill(x.d)).text(text);
+      else td.text(text);
+    });
+});
+
+dash.draw('scatter', (el) => {
+  const s = dash.data('scored');
+  if (s.status !== 'ok') { el.replaceChildren(); return; }
+  const rows = pick(s.data);
+  if (!rows.length) { el.replaceChildren(); return; }
+  const W = Math.max(el.clientWidth, 300), H = 300, m = { t: 14, r: 16, b: 38, l: 46 };
+  const x = d3.scaleLinear().domain([0, THR.per]).range([m.l, W - m.r]);
+  const ymax = d3.max(rows, (d) => d.tot) || 1;
+  const y = d3.scaleLinear().domain([0, ymax * 1.08]).nice().range([H - m.b, m.t]);
+  const svg = d3.create('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+    .attr('aria-label', 'PER 20 이하 종목의 PER(가로)과 종합 점수(세로) 산점도');
+  svg.append('g').selectAll('line').data(y.ticks(5)).join('line')
+    .attr('x1', m.l).attr('x2', W - m.r).attr('y1', (d) => y(d)).attr('y2', (d) => y(d))
+    .style('stroke', 'var(--cds-chart-grid, var(--color-border-line))');
+  svg.append('g').selectAll('text').data(y.ticks(5)).join('text').attr('class', 'mut')
+    .attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').text((d) => f0(d));
+  svg.append('g').selectAll('text').data([0, 5, 10, 15, 20]).join('text').attr('class', 'mut')
+    .attr('x', (d) => x(d)).attr('y', H - m.b + 18).attr('text-anchor', 'middle').text((d) => d);
+  svg.append('text').attr('class', 'mut').attr('x', (m.l + W - m.r) / 2).attr('y', H - 4).attr('text-anchor', 'middle').text('PER');
+  svg.append('text').attr('class', 'mut').attr('x', 4).attr('y', m.t - 2).text('종합 점수');
+  const fill = (d) => (d.passes >= 4 ? 'var(--color-ok)' : (d.passes === 3 ? 'var(--color-warn)' : 'var(--cds-chart-muted, var(--color-fg-muted))'));
+  const tip = d3.create('div').attr('class', 'pe-tip').style('display', 'none');
+  svg.append('g').selectAll('circle').data(rows).join('circle')
+    .attr('cx', (d) => x(d.per)).attr('cy', (d) => y(d.tot)).attr('r', (d) => (d.passes >= 4 ? 6 : 4.5))
+    .style('fill', fill).style('fill-opacity', 0.85).style('stroke', 'var(--color-bg)')
+    .on('mousemove', function (ev, d) {
+      const box = el.getBoundingClientRect();
+      tip.style('display', 'block').text(`${d.name} · PER ${num1(d.per)} · 통과 ${d.passes}개 · 종합 ${d.tot}`);
+      const tn = tip.node(), left = Math.min(Math.max(ev.clientX - box.left + 12, 0), Math.max(0, box.width - tn.offsetWidth));
+      tip.style('left', left + 'px').style('top', Math.max(0, ev.clientY - box.top - 36) + 'px');
+    })
+    .on('mouseleave', () => tip.style('display', 'none'));
+  const lab = rows.filter((d) => d.passes >= 4).sort((a, b) => y(a.tot) - y(b.tot));
+  let lastY = -99;
+  svg.append('g').selectAll('text').data(lab).join('text')
+    .attr('x', (d) => Math.min(x(d.per) + 9, W - m.r - 4)).attr('text-anchor', (d) => (x(d.per) + 9 > W - 60 ? 'end' : 'start'))
+    .attr('y', (d) => { let yy = y(d.tot) + 4; if (yy - lastY < 13) yy = lastY + 13; lastY = yy; return yy; })
+    .text((d) => d.name);
+  el.replaceChildren(svg.node(), tip.node());
+});
+</script>
