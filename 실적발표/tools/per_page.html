@@ -97,7 +97,7 @@
       <table class="pe-table pe-main" data-source="scored" data-row-key="code">
         <thead><tr>
           <th>순위</th><th data-field="name">종목</th><th data-field="set">접수분</th><th data-field="semi">반도체</th><th data-field="mcap">시총</th><th data-field="ni_ttm">순이익(4분기 합산)</th>
-          <th class="g" data-field="per">PER</th><th data-field="per_naver">네이버 PER</th><th data-field="cns_per26">2026E PER</th><th data-field="pbr">PBR</th>
+          <th class="g" data-field="per">PER</th><th data-field="per_naver">네이버 PER</th><th data-field="cns_per27">2027E PER</th><th data-field="pbr">PBR</th>
           <th class="g" data-field="passes">통과</th><th data-field="tot">종합 점수</th>
           <th class="g" data-field="m_yoy">YoY</th><th data-field="m_qoq">QoQ</th><th data-field="m_ttm">TTM</th><th data-field="cons_ok">컨센</th><th data-field="d_hi">차트</th>
         </tr></thead>
@@ -115,7 +115,7 @@
   </section>
 
   <section class="pe-foot" id="caveats">
-    <p>PER은 현재 시총을 최근 4분기 합산 순이익(작년 4분기 + 올해 1~3분기)으로 나눈 값입니다. 순이익은 지배기업 소유주지분 몫이고, 구분이 없는 회사는 당기순이익을 썼습니다. 네이버 PER은 대부분 2026.06 또는 2025.12까지의 실적 기준이라 3분기 성장이 반영되지 않아 참고로만 두었습니다. 2026E PER은 네이버 컨센서스(2026년 추정)이며, 2027년 컨센서스 PER은 구하지 못해 넣지 않았습니다. 순이익이 0 이하이거나 신규 상장이라 계산할 수 없는 종목과 PER 30 초과 종목은 목록에서 빠집니다.</p>
+    <p>PER은 현재 시총을 최근 4분기 합산 순이익(작년 4분기 + 올해 1~3분기)으로 나눈 값입니다. 순이익은 지배기업 소유주지분 몫이고, 구분이 없는 회사는 당기순이익을 썼습니다. 네이버 PER은 대부분 2026.06 또는 2025.12까지의 실적 기준이라 3분기 성장이 반영되지 않아 참고로만 두었습니다. 2027E PER은 FnGuide 컨센서스의 2027년 PER(조회일 주가 ÷ 컨센서스 EPS)이고, 컨센서스가 있는 기업만 보여줍니다. 없으면 —입니다. 순이익이 0 이하이거나 신규 상장이라 계산할 수 없는 종목과 PER 30 초과 종목은 목록에서 빠집니다.</p>
     <details>
       <summary>다섯 기준</summary>
       <ul>
@@ -148,7 +148,7 @@ dash.calc('scored', {
         const o = {
           code: r.code, name: r.name, set: r.set, mcap: r.mcap, semi: r.semi == null ? '' : r.semi,
           ni_ttm: r.ni_ttm, per: r.ni_ttm != null && r.ni_ttm > 0 && r.mcap != null ? r.mcap / r.ni_ttm : null,
-          per_naver: r.per_naver, cns_per26: r.cns_per26, pbr: r.pbr,
+          per_naver: r.per_naver, cns_per27: r.cns_per27, pbr: r.pbr,
           m_yoy: r.m_yoy, m_qoq: r.m_qoq, m_ttm: r.m_ttm, d_hi: r.d_hi,
         };
         o.yoy_ok = ok(r.m_yoy, 0.2); o.qoq_ok = ok(r.m_qoq, 0.2); o.ttm_ok = ok(r.m_ttm, 0.15); o.chart_ok = ok(r.d_hi, -0.05);
@@ -233,7 +233,7 @@ const COLS = [
   { f: 'ni_ttm', t: (r) => (r.ni_ttm == null ? '—' : f0(r.ni_ttm)) },
   { f: 'per', t: (r) => num1(r.per), g: 1 },
   { f: 'per_naver', t: (r) => num1(r.per_naver), c: () => 'muted' },
-  { f: 'cns_per26', t: (r) => num1(r.cns_per26), c: () => 'muted' },
+  { f: 'cns_per27', t: (r) => num1(r.cns_per27), c: () => 'muted' },
   { f: 'pbr', t: (r) => (r.pbr == null ? '—' : f2(r.pbr)) },
   { f: 'passes', t: (r) => r.passes, pill: (r) => passCls(r.passes), g: 1 },
   { f: 'tot', t: (r) => r.tot },
