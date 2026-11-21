@@ -51,8 +51,8 @@
 
 <div class="pe">
   <header>
-    <h1 class="pe-title" id="top">3분기 실적상승 종목</h1>
-    <p class="pe-meta">매출·영업이익이 전년 동기 또는 직전 분기 대비 20% 이상 오른 종목 · PER 구간별 · 시총 11/18 · 금액 단위 억원</p>
+    <h1 class="pe-title" id="top">{{분기}} 실적상승 종목</h1>
+    <p class="pe-meta">매출·영업이익이 전년 동기 또는 직전 분기 대비 20% 이상 오른 종목 · PER 구간별 · 시총 {{기준일}} · 금액 단위 억원</p>
     <p class="pe-take" data-draw="take">—</p>
   </header>
 
@@ -70,17 +70,13 @@
         <tbody data-draw="sumRows"></tbody>
       </table>
     </div>
-    <p class="pe-note">시총 2,000억원 이상 중 3분기 매출·영업이익이 모두 전년 동기 또는 직전 분기 대비 +20% 이상인 종목입니다. 두 접수분에 모두 있는 종목은 11/16 확정치만 씁니다. PER 없음은 순이익이 0 이하(적자)이거나 신규 상장이라 계산할 수 없는 종목입니다.</p>
+    <p class="pe-note">시총 2,000억원 이상 중 {{분기}} 매출·영업이익이 모두 전년 동기 또는 직전 분기 대비 +20% 이상인 종목입니다. 두 접수분에 모두 있는 종목은 11/16 확정치만 씁니다. PER 없음은 순이익이 0 이하(적자)이거나 신규 상장이라 계산할 수 없는 종목입니다.</p>
   </section>
 
   <section class="pe-sec" id="ranking">
     <h2>종목 정렬표</h2>
     <div class="pe-ctl">
-      <div class="pe-grp" role="group" aria-label="접수분"><span>접수분</span>
-        <button type="button" class="pe-btn" data-ctl="set" data-val="all" aria-pressed="true">전체</button>
-        <button type="button" class="pe-btn" data-ctl="set" data-val="11/16 접수" aria-pressed="false">11/16 접수</button>
-        <button type="button" class="pe-btn" data-ctl="set" data-val="11/9~13 접수" aria-pressed="false">11/9~13 접수</button>
-      </div>
+      <div class="pe-grp" role="group" aria-label="접수분" data-draw="setBtns"></div>
       <div class="pe-grp" role="group" aria-label="PER 구간"><span>PER</span>
         <button type="button" class="pe-btn" data-ctl="band" data-val="all" aria-pressed="true">전체</button>
         <button type="button" class="pe-btn" data-ctl="band" data-val="low" aria-pressed="false">20 이하</button>
@@ -92,8 +88,20 @@
         <button type="button" class="pe-btn" data-ctl="semi" data-val="incl" aria-pressed="true">포함</button>
         <button type="button" class="pe-btn" data-ctl="semi" data-val="excl" aria-pressed="false">제외</button>
       </div>
+      <div class="pe-grp" role="group" aria-label="통과 기준"><span>통과 기준(고른 것을 모두 통과)</span>
+        <button type="button" class="pe-btn" data-need="yoy" aria-pressed="false">YoY</button>
+        <button type="button" class="pe-btn" data-need="qoq" aria-pressed="false">QoQ</button>
+        <button type="button" class="pe-btn" data-need="ttm" aria-pressed="false">TTM</button>
+        <button type="button" class="pe-btn" data-need="cons" aria-pressed="false">컨센</button>
+        <button type="button" class="pe-btn" data-need="chart" aria-pressed="false">차트</button>
+      </div>
       <div class="pe-grp" role="group" aria-label="정렬"><span>정렬</span>
         <button type="button" class="pe-btn" data-ctl="sort" data-val="score" aria-pressed="true">통과·종합 점수순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="yoy" aria-pressed="false">YoY순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="qoq" aria-pressed="false">QoQ순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="ttm" aria-pressed="false">TTM순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="cons" aria-pressed="false">컨센 서프라이즈순</button>
+        <button type="button" class="pe-btn" data-ctl="sort" data-val="chart" aria-pressed="false">차트(고가 근접)순</button>
         <button type="button" class="pe-btn" data-ctl="sort" data-val="per" aria-pressed="false">PER 낮은 순</button>
       </div>
     </div>
@@ -103,12 +111,12 @@
           <th>순위</th><th data-field="name">종목</th><th data-field="set">접수분</th><th data-field="semi">반도체</th><th data-field="mcap">시총</th><th data-field="ni_ttm">순이익(4분기 합산)</th>
           <th class="g" data-field="per">PER</th><th data-field="per_naver">네이버 PER</th><th data-field="cns_per27">2027E PER</th><th data-field="pbr">PBR</th>
           <th class="g" data-field="passes">통과</th><th data-field="tot">종합 점수</th>
-          <th class="g" data-field="m_yoy">YoY</th><th data-field="m_qoq">QoQ</th><th data-field="m_ttm">TTM</th><th data-field="cons_ok">컨센</th><th data-field="d_hi">차트</th>
+          <th class="g" data-field="m_yoy">YoY</th><th data-field="m_qoq">QoQ</th><th data-field="m_ttm">TTM</th><th data-field="cons_ok">컨센</th><th data-field="m_cons">컨센 서프라이즈</th><th data-field="d_hi">차트</th>
         </tr></thead>
         <tbody data-draw="rows"></tbody>
       </table>
     </div>
-    <p class="pe-note">통과는 다섯 기준(YoY·QoQ·TTM·컨센서스·차트) 중 몇 개를 넘었는지입니다. YoY·QoQ·TTM은 매출과 영업이익 증가율 중 낮은 쪽이고 초록색이면 기준 통과입니다. 종합 점수는 접수분 안에서 YoY·QoQ·TTM 순위를 1등 N점, 꼴찌 1점으로 매겨 더한 값입니다.</p>
+    <p class="pe-note">통과는 다섯 기준(YoY·QoQ·TTM·컨센서스·차트) 중 몇 개를 넘었는지입니다. 위에서 통과 기준 버튼을 고르면 고른 기준을 모두 통과한 종목만 남고, 정렬 버튼으로 기준별 순서로 볼 수 있습니다. 컨센 서프라이즈는 매출과 영업이익이 컨센서스 대비 얼마나 높은지 중 낮은 쪽입니다. YoY·QoQ·TTM은 매출과 영업이익 증가율 중 낮은 쪽이고 초록색이면 기준 통과입니다. 종합 점수는 접수분 안에서 YoY·QoQ·TTM 순위를 1등 N점, 꼴찌 1점으로 매겨 더한 값입니다.</p>
   </section>
 
   <section class="pe-sec" id="scatter">
@@ -119,8 +127,8 @@
   </section>
 
   <section class="pe-foot" id="caveats">
-    <p>PER은 현재 시총을 최근 4분기 합산 순이익(작년 4분기 + 올해 1~3분기)으로 나눈 값입니다. 순이익은 지배기업 소유주지분 몫이고, 구분이 없는 회사는 당기순이익을 썼습니다. 네이버 PER은 대부분 2026.06 또는 2025.12까지의 실적 기준이라 3분기 성장이 반영되지 않아 참고로만 두었습니다. 2027E PER은 FnGuide 컨센서스의 2027년 PER(조회일 주가 ÷ 컨센서스 EPS)이고, 컨센서스가 있는 기업만 보여줍니다. 없으면 —입니다. 순이익이 0 이하이거나 신규 상장이라 PER을 계산할 수 없는 종목은 "PER 없음" 구간에만 보입니다.</p>
-    <p>공시와 컨센서스 데이터를 위 기준대로 계산해 정리한 것이며 투자 권유가 아닙니다. 투자 판단과 결과는 본인 책임입니다. 출처: 금융감독원 DART 전자공시, 네이버증권, FnGuide(컨센서스). 2026년 11월 21일 정리, 시총·컨센서스·차트는 11월 18일 기준입니다.</p>
+    <p>PER은 현재 시총을 최근 4분기 합산 순이익(작년 4분기 + 올해 1~3분기)으로 나눈 값입니다. 순이익은 지배기업 소유주지분 몫이고, 구분이 없는 회사는 당기순이익을 썼습니다. 네이버 PER은 대부분 직전 확정 실적 기준이라 {{분기}} 성장이 반영되지 않았을 수 있어 참고로만 두었습니다. 2027E PER은 FnGuide 컨센서스의 2027년 PER(조회일 주가 ÷ 컨센서스 EPS)이고, 컨센서스가 있는 기업만 보여줍니다. 없으면 —입니다. 순이익이 0 이하이거나 신규 상장이라 PER을 계산할 수 없는 종목은 "PER 없음" 구간에만 보입니다.</p>
+    <p>공시와 컨센서스 데이터를 위 기준대로 계산해 정리한 것이며 투자 권유가 아닙니다. 투자 판단과 결과는 본인 책임입니다. 출처: 금융감독원 DART 전자공시, 네이버증권, FnGuide(컨센서스). {{정리일_한글}} 정리, 시총·컨센서스·차트는 {{기준일_한글}} 기준입니다.</p>
     <details>
       <summary>다섯 기준</summary>
       <ul>
@@ -136,7 +144,7 @@
 
 <script>
 const THR = { yoy: 0.2, qoq: 0.2, ttm: 0.15, chart: -0.05, perLow: 20, perHigh: 30 };
-const view = { band: 'all', set: 'all', semi: 'incl', sort: 'score' };
+const view = { band: 'all', set: 'all', semi: 'incl', sort: 'score', need: {} };
 const f0 = d3.format(',.0f'), f1 = d3.format('.1f'), f2 = d3.format('.2f');
 const pct = (v) => (v == null ? '—' : (v >= 0 ? '+' : '−') + f0(Math.abs(v) * 100) + '%');
 const num1 = (v) => (v == null ? '—' : f1(v));
@@ -155,6 +163,7 @@ dash.calc('scored', {
           ni_ttm: r.ni_ttm, per: r.ni_ttm != null && r.ni_ttm > 0 && r.mcap != null ? r.mcap / r.ni_ttm : null,
           per_naver: r.per_naver, cns_per27: r.cns_per27, pbr: r.pbr,
           m_yoy: r.m_yoy, m_qoq: r.m_qoq, m_ttm: r.m_ttm, d_hi: r.d_hi,
+          m_cons: r.sur_rev != null && r.sur_op != null ? Math.min(r.sur_rev, r.sur_op) : null,
         };
         o.yoy_ok = ok(r.m_yoy, 0.2); o.qoq_ok = ok(r.m_qoq, 0.2); o.ttm_ok = ok(r.m_ttm, 0.15); o.chart_ok = ok(r.d_hi, -0.05);
         o.cons_ok = r.cons === true ? 'O' : (r.cons === false ? 'X' : '—');
@@ -181,7 +190,7 @@ dash.calc('summary', {
   title: '접수분별 집계',
   description: '접수분별 종목 수를 PER 구간(20 이하, 20 초과~30 이하, 30 초과, 없음)으로 나누어 세고, 구간별로 다섯 기준 중 4개 이상 통과한 종목 수를 셉니다.',
   inputs: ['scored'],
-  fn: (scored) => ['전체', '11/16 접수', '11/9~13 접수'].map((grp) => {
+  fn: (scored) => ['전체', ...new Set(scored.map((r) => r.set))].map((grp) => {
     const L = scored.filter((r) => grp === '전체' || r.set === grp);
     const P = L.filter((r) => r.per_ok), M = L.filter((r) => r.mid_ok), H = L.filter((r) => r.high_ok);
     const n4 = (X) => X.filter((r) => r.passes >= 4).length;
@@ -193,11 +202,15 @@ dash.calc('summary', {
 });
 
 const inBand = (r) => (view.band === 'low' ? r.per_ok : (view.band === 'mid' ? r.mid_ok : (view.band === 'high' ? r.high_ok : (view.band === 'none' ? r.no_per : true))));
-const pick = (rows) => rows.filter((r) => inBand(r) && (view.set === 'all' || r.set === view.set) && (view.semi === 'incl' || r.semi !== '반도체'));
+const needOk = (r) => Object.keys(view.need).every((k) => !view.need[k] || r[k + '_ok'] === 'O');
+const pick = (rows) => rows.filter((r) => inBand(r) && needOk(r) && (view.set === 'all' || r.set === view.set) && (view.semi === 'incl' || r.semi !== '반도체'));
 const perKey = (r) => (r.per == null ? Infinity : r.per);
-const order = (rows) => rows.slice().sort(view.sort === 'per'
-  ? (a, b) => (perKey(a) === perKey(b) ? b.passes - a.passes : perKey(a) - perKey(b))
-  : (a, b) => b.passes - a.passes || b.tot - a.tot || perKey(a) - perKey(b));
+const SORT_FIELD = { yoy: 'm_yoy', qoq: 'm_qoq', ttm: 'm_ttm', cons: 'm_cons', chart: 'd_hi' };
+const order = (rows) => rows.slice().sort(SORT_FIELD[view.sort]
+  ? (a, b) => (a[SORT_FIELD[view.sort]] == null) - (b[SORT_FIELD[view.sort]] == null) || b[SORT_FIELD[view.sort]] - a[SORT_FIELD[view.sort]]
+  : (view.sort === 'per'
+    ? (a, b) => (perKey(a) === perKey(b) ? b.passes - a.passes : perKey(a) - perKey(b))
+    : (a, b) => b.passes - a.passes || b.tot - a.tot || perKey(a) - perKey(b)));
 
 document.querySelectorAll('[data-ctl]').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -205,6 +218,26 @@ document.querySelectorAll('[data-ctl]').forEach((btn) => {
     document.querySelectorAll('[data-ctl="' + btn.getAttribute('data-ctl') + '"]').forEach((x) => x.setAttribute('aria-pressed', x === btn ? 'true' : 'false'));
     dash.draw('rows'); dash.draw('scatter');
   });
+});
+
+document.querySelectorAll('[data-need]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const k = btn.getAttribute('data-need');
+    view.need[k] = !view.need[k];
+    btn.setAttribute('aria-pressed', view.need[k] ? 'true' : 'false');
+    dash.draw('rows'); dash.draw('scatter');
+  });
+});
+
+dash.draw('setBtns', (el) => {
+  const sc = dash.data('scored');
+  const names = sc.status === 'ok' ? [...new Set(sc.data.map((r) => r.set))] : [];
+  const items = [{ val: 'all', label: '전체' }, ...names.map((n) => ({ val: n, label: n }))];
+  d3.select(el).selectAll('*').remove();
+  d3.select(el).append('span').text('접수분');
+  d3.select(el).selectAll('button').data(items).join('button')
+    .attr('type', 'button').attr('class', 'pe-btn').attr('aria-pressed', (d) => (view.set === d.val ? 'true' : 'false')).text((d) => d.label)
+    .on('click', (ev, d) => { view.set = d.val; dash.draw('setBtns'); dash.draw('rows'); dash.draw('scatter'); });
 });
 
 dash.draw('take', (el) => {
@@ -217,7 +250,7 @@ dash.draw('take', (el) => {
     e.setAttribute('data-source', 'summary'); e.setAttribute('data-field', f); e.setAttribute('data-where', 'grp=전체');
     return e;
   };
-  el.replaceChildren('3분기 실적이 오른 ', b('total'), '곳 중 PER 20 이하는 ', b('perok'), '곳, 20 초과~30 이하는 ', b('midok'), '곳, 30 초과는 ', b('hiok'), '곳이고 PER을 계산할 수 없는 종목이 ', b('noper'), '곳입니다. 다섯 기준 중 4개 이상을 통과한 종목은 모두 ', b('all4'), '곳입니다.');
+  el.replaceChildren('{{분기}} 실적이 오른 ', b('total'), '곳 중 PER 20 이하는 ', b('perok'), '곳, 20 초과~30 이하는 ', b('midok'), '곳, 30 초과는 ', b('hiok'), '곳이고 PER을 계산할 수 없는 종목이 ', b('noper'), '곳입니다. 다섯 기준 중 4개 이상을 통과한 종목은 모두 ', b('all4'), '곳입니다.');
 });
 
 dash.draw('sumRows', (el) => {
@@ -250,6 +283,7 @@ const COLS = [
   { f: 'm_qoq', t: (r) => pct(r.m_qoq), c: (r) => gCls(THR.qoq)(r.m_qoq) },
   { f: 'm_ttm', t: (r) => pct(r.m_ttm), c: (r) => gCls(THR.ttm)(r.m_ttm) },
   { f: 'cons_ok', t: (r) => r.cons_ok, pill: (r) => flagCls(r.cons_ok) },
+  { f: 'm_cons', t: (r) => pct(r.m_cons), c: (r) => gCls(0)(r.m_cons) },
   { f: 'd_hi', t: (r) => pct(r.d_hi), c: (r) => gCls(THR.chart)(r.d_hi) },
 ];
 dash.draw('rows', (el) => {

@@ -109,11 +109,11 @@ python3 /root/.claude/skills/synced/*/xlsx/scripts/recalc.py OUT/YYYY-NQ_실적�
 ```bash
 python3 $T/chart_day.py      # analysis.json 의 YoY|QoQ 해당 종목 차트 위치 -> chart_all.json (권리락 ±30% 이전 시세는 버림)
 python3 $T/eval_day.py       # 다섯 기준 통과 개수·종합 점수 -> eval_day.json (ksic.json, ttm_final.json, cons.json 필요)
-python3 $T/per_fetch.py      # 네이버 PER·추정PER·PBR -> per_all.json (day1116/eval_day.json 경로는 날짜에 맞게 수정)
+python3 $T/per_fetch.py stocks_base.json   # 네이버 PER·PBR(참고용) -> per_all.json
 ```
 - **PER은 직접 계산한다**(`per_ttm.py`): 현재 시총 ÷ 최근 4분기 합산 지배주주 순이익(작년 4분기 + 올해 1~3분기 = FY(y-1) − 누적(y-1) + 누적(y)). 네이버 PER은 직전 확정 기준(3분기 직후에도 2026.06 기준)이라 3분기 성장이 반영되지 않아 중앙값으로 약 12% 높게 나오므로 참고 열로만 둔다. 순이익 0 이하(적자)나 FY 재무가 없는 신규 상장은 PER 없음으로 필터에서 뺀다. 검증: 네이버 PER이 이미 최신 분기 기준인 종목과 비교해 ±3% 안(시총 시점 차이)인지 본다.
 - **추정(컨센서스) PER = 2027E PER (FnGuide):** 네이버(`finance/annual`, `cnsPer`)는 2026E까지만 있어서 쓰지 않는다. `python3 $T/fng_fetch.py stocks.json`이 `https://wcomp.fnguide.com/CompanyInfo/Consensus?cmp_cd=<6자리코드>` 페이지에 인라인으로 들어 있는 `perforTrend` JSON에서 2027/12 PER·EPS를 읽는다(컨센서스가 있는 기업만, 없으면 null → `per_fng.json`). 환경 네트워크에 `wcomp.fnguide.com`(옛 `comp.fnguide.com`은 이쪽으로 리다이렉트)이 허용돼 있어야 한다. 이전 주소 체계(`SVO2/ASP/...`)는 개편으로 사라졌다. 요청 사이에 0.2초 간격·4스레드로 가볍게 받는다. 검증: FnGuide 2027E PER이 `시총 ÷ 컨센서스 지배순이익`과 중앙값 비율 1에 가까운지(11/18: 0.998), 2026E가 네이버 `cnsPer`와 같은지 본다. 사이트 약관은 사용자가 이용을 직접 지시한 범위에서만 쓴다.
-- 결과를 보기 쉽게 정리하라는 요청에는 Data 유형 아티팩트 「3분기 실적상승 종목」(처음 이름은 「저PER 실적 상위」였고 사용자 요청으로 바꿨다)을 쓴다. 데이터 파일 `stocks.json`({rows, meta})을 올리고 페이지는 `$T/per_page.html`(`files/index.html` 문서의 `text`). 점수는 접수분 풀 안에서 매긴다(필터 전 전체 풀 기준).
+- 결과를 보기 쉽게 정리하라는 요청에는 Data 유형 아티팩트 「N분기 실적상승 종목」(처음 이름은 「저PER 실적 상위」였고 사용자 요청으로 바꿨다)을 쓴다. **다음 분기에 같은 아티팩트를 다시 만들 때는 프로젝트 스킬 `quarterly-earnings-artifact`(`.claude/skills/`)를 따른다.** 데이터는 `build_stocks.py base`(접수분 pool 합치기, 스크리닝 대상 집합과 일치 검사) → `per_fetch.py`·`fng_fetch.py`·`per_ttm.py` → `build_stocks.py final`로 `stocks.json`({rows, meta})을 만들고, 페이지는 템플릿 `$T/per_page.html`({{분기}}·{{기준일}} 같은 자리표시자)을 `render_page.py`로 채워 `files/index.html` 문서에 쓴다. 페이지에는 다섯 기준(YoY·QoQ·TTM·컨센·차트) 선택 필터와 기준별 정렬, PER 구간 버튼이 있다. 점수는 접수분 풀 안에서 매긴다(필터 전 전체 풀 기준).
 - PER 구간은 "20 이하" / "20 초과~30 이하" / "30 초과" / "PER 없음(적자·신규 상장)" / "전체"(기본값)로 나눠 보여준다(페이지의 PER 버튼, `stocks.json`에는 전체 PER을 넣고 구간은 페이지가 나눈다). PER이 20을 넘는 구간의 산점도는 가로축을 로그 눈금(2~300, 초과는 끝에 붙임)으로 그린다.
 - 페이지 작성 시 주의(검증에서 실제로 걸렸던 것): 표에 보이는 값은 데이터 값과 **글자 그대로** 같아야 한다(예: `2026.06`을 `26.06`으로 줄이면 표시 불일치로 잡힘). 산점도 라벨은 서로 겹치면 실패(`labels_overlap`)이므로 점 이름은 충돌을 피해 배치하고 못 놓으면 생략한다(툴팁은 유지). 축 제목("종합 점수")도 맨 위 눈금 숫자와 같은 높이에 두면 걸린다 — 제목은 눈금보다 위쪽 여백(상단 여백 34px, 제목 y=13)에 둔다.
 - 이 목록은 시장 전체 종목이라 공개해도 되지만, 보유·관심 표시나 수량은 넣지 않는다.

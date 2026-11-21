@@ -1,9 +1,10 @@
 """PER 재계산: 시총(현재) / 최근 4분기 합산 지배주주 순이익 (= 작년 4분기 + 올해 1~3분기 = FY25 − 9M25 + 9M26)"""
 import sys,os,json,re,time,urllib.request,concurrent.futures as cf
+STOCKS=sys.argv[1] if len(sys.argv)>1 else 'stocks.json'   # 종목 목록 파일(rows[].code)
 sys.argv=['x']
 sys.path.insert(0,'/home/user/tradesignal-prognosis/실적발표/tools')
 import watch_check as w
-S=json.load(open('stocks.json'))['rows']   # 평가 대상 종목 목록(code 열이 있는 rows)
+S=json.load(open(STOCKS))['rows']
 codes=[r['code'] for r in S]
 # corp_code 수집: 이미 받은 fin3.json 들에서, 없으면 corpCode.xml
 cm={}
